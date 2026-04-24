@@ -6,6 +6,14 @@ export const ACCENTS = {
   purple: '#A78BFA',
 };
 
+const ACCENT_LIGHT = {
+  yellow: '#856A02',
+  blue:   '#1555C4',
+  teal:   '#0D6B43',
+  coral:  '#B83C00',
+  purple: '#4C2DB8',
+};
+
 const DARK_BASE = {
   background:    '#0F0F0F',
   surface:       '#1A1A1A',
@@ -29,6 +37,7 @@ const LIGHT_BASE = {
 };
 
 export function buildTheme(mode, accentKey) {
-  const base = mode === 'dark' ? DARK_BASE : LIGHT_BASE;
-  return { ...base, accent: ACCENTS[accentKey] ?? ACCENTS.blue };
+  const base      = mode === 'dark' ? DARK_BASE : LIGHT_BASE;
+  const accentMap = mode === 'dark' ? ACCENTS : ACCENT_LIGHT;
+  return { ...base, accent: accentMap[accentKey] ?? accentMap.blue };
 }
