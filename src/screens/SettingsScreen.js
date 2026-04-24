@@ -38,7 +38,7 @@ export default function SettingsScreen() {
               style={[
                 s.swatch,
                 { backgroundColor: ACCENTS[key] },
-                key === accentKey && s.swatchSelected,
+                key === accentKey && { borderWidth: 3, borderColor: mode === 'dark' ? '#FFFFFF' : '#1A1A1A' },
               ]}
               onPress={() => setAccent(key)}
             >
@@ -67,6 +67,5 @@ const s = StyleSheet.create({
   rowLabel:      { fontSize: 16, fontWeight: '500' },
   swatches:      { flexDirection: 'row', gap: 12 },
   swatch:        { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  swatchSelected:{ borderWidth: 3, borderColor: '#FFFFFF' },
   swatchCheck:   { color: '#000000', fontWeight: '700', fontSize: 18 },
 });
