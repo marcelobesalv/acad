@@ -1,48 +1,38 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  SafeAreaView,
-} from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getAllWorkoutsSortedDesc, replaceAllWorkouts } from '../storage/storage';
 import { exportWorkouts, pickAndReadBackup } from '../utils/exportImport';
-import { COLORS } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 function calcVolume(exercises) {
   return exercises.reduce(
-    (total, ex) =>
-      total + ex.sets.reduce((s, set) => s + set.reps * set.weight, 0),
+    (total, ex) => total + ex.sets.reduce((s, set) => s + set.reps * set.weight, 0),
     0
   );
 }
 
 function WorkoutRow({ workout }) {
+  const { theme: C, mode } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const volume = calcVolume(workout.exercises);
 
   return (
-    <View style={s.card}>
-      <TouchableOpacity
-        style={s.cardHeader}
-        onPress={() => setExpanded(e => !e)}
-      >
-        <Text style={s.dateText}>{workout.date}</Text>
-        <Text style={s.volText}>{volume.toFixed(1)} kg total</Text>
-        <Text style={s.chevron}>{expanded ? '▲' : '▼'}</Text>
+    <View style={[s.card, { backgroundColor: C.surface, borderLeftColor: C.accent },
+      mode === 'light' && { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 }]}>
+      <TouchableOpacity style={s.cardHeader} onPress={() => setExpanded(e => !e)}>
+        <Text style={[s.dateText, { color: C.text }]}>{workout.date}</Text>
+        <Text style={[s.volText, { color: C.accent }]}>{volume.toFixed(1)} kg total</Text>
+        <Text style={[s.chevron, { color: C.textSecondary }]}>{expanded ? '▲' : '▼'}</Text>
       </TouchableOpacity>
 
       {expanded && (
         <View style={s.detail}>
           {workout.exercises.map((ex, i) => (
             <View key={i} style={s.exBlock}>
-              <Text style={s.exName}>{ex.name}</Text>
+              <Text style={[s.exName, { color: C.text }]}>{ex.name}</Text>
               {ex.sets.map((set, j) => (
-                <Text key={j} style={s.setLine}>
+                <Text key={j} style={[s.setLine, { color: C.textSecondary }]}>
                   Set {j + 1}: {set.reps} reps × {set.weight} kg
                 </Text>
               ))}
@@ -55,26 +45,20 @@ function WorkoutRow({ workout }) {
 }
 
 export default function HistoryScreen() {
+  const { theme: C } = useTheme();
   const [workouts, setWorkouts] = useState([]);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      getAllWorkoutsSortedDesc().then(data => {
-        if (active) setWorkouts(data);
-      });
-      return () => {
-        active = false;
-      };
+      getAllWorkoutsSortedDesc().then(data => { if (active) setWorkouts(data); });
+      return () => { active = false; };
     }, [])
   );
 
   async function handleExport() {
-    try {
-      await exportWorkouts(workouts);
-    } catch (e) {
-      Alert.alert('Export failed', e.message);
-    }
+    try { await exportWorkouts(workouts); }
+    catch (e) { Alert.alert('Export failed', e.message); }
   }
 
   async function handleImport() {
@@ -87,8 +71,7 @@ export default function HistoryScreen() {
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Replace All',
-            style: 'destructive',
+            text: 'Replace All', style: 'destructive',
             onPress: async () => {
               await replaceAllWorkouts(parsed);
               const data = await getAllWorkoutsSortedDesc();
@@ -98,84 +81,43 @@ export default function HistoryScreen() {
           },
         ]
       );
-    } catch (e) {
-      Alert.alert('Import failed', e.message);
-    }
+    } catch (e) { Alert.alert('Import failed', e.message); }
   }
 
   return (
-    <SafeAreaView style={s.root}>
+    <SafeAreaView style={[s.root, { backgroundColor: C.background }]}>
       <View style={s.actionRow}>
-        <TouchableOpacity style={s.actionBtn} onPress={handleExport}>
-          <Text style={s.actionBtnText}>Export JSON</Text>
+        <TouchableOpacity style={[s.actionBtn, { backgroundColor: C.surface }]} onPress={handleExport}>
+          <Text style={[s.actionBtnText, { color: C.accent }]}>Export JSON</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.actionBtn} onPress={handleImport}>
-          <Text style={s.actionBtnText}>Import JSON</Text>
+        <TouchableOpacity style={[s.actionBtn, { backgroundColor: C.surface }]} onPress={handleImport}>
+          <Text style={[s.actionBtnText, { color: C.accent }]}>Import JSON</Text>
         </TouchableOpacity>
       </View>
-
       <FlatList
         data={workouts}
         keyExtractor={item => item.id}
         renderItem={({ item }) => <WorkoutRow workout={item} />}
         contentContainerStyle={{ padding: 16, paddingTop: 0 }}
-        ListEmptyComponent={
-          <Text style={s.empty}>No workouts logged yet.</Text>
-        }
+        ListEmptyComponent={<Text style={[s.empty, { color: C.textSecondary }]}>No workouts logged yet.</Text>}
       />
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  actionRow: { flexDirection: 'row', padding: 16, paddingBottom: 8 },
-  actionBtn: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 4,
-  },
-  actionBtnText: { color: COLORS.accent, fontWeight: '600', fontSize: 14 },
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 10,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-  },
-  dateText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  volText: {
-    color: COLORS.accent,
-    fontWeight: '600',
-    marginRight: 10,
-    fontSize: 13,
-  },
-  chevron: { color: COLORS.textSecondary, fontSize: 12 },
-  detail: { paddingHorizontal: 14, paddingBottom: 12 },
-  exBlock: { marginBottom: 10 },
-  exName: { color: COLORS.accent, fontWeight: '700', marginBottom: 4 },
-  setLine: {
-    color: COLORS.text,
-    fontSize: 14,
-    paddingLeft: 8,
-    paddingVertical: 1,
-  },
-  empty: {
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 60,
-    fontSize: 15,
-  },
+  root:          { flex: 1 },
+  actionRow:     { flexDirection: 'row', padding: 16, paddingBottom: 8 },
+  actionBtn:     { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center', marginHorizontal: 4 },
+  actionBtnText: { fontWeight: '600', fontSize: 14 },
+  card:          { borderRadius: 10, marginBottom: 12, overflow: 'hidden', borderLeftWidth: 3 },
+  cardHeader:    { flexDirection: 'row', alignItems: 'center', padding: 14 },
+  dateText:      { flex: 1, fontSize: 16, fontWeight: '700' },
+  volText:       { fontWeight: '600', marginRight: 10, fontSize: 13 },
+  chevron:       { fontSize: 12 },
+  detail:        { paddingHorizontal: 14, paddingBottom: 12 },
+  exBlock:       { marginBottom: 10 },
+  exName:        { fontWeight: '700', marginBottom: 4 },
+  setLine:       { fontSize: 14, paddingLeft: 8, paddingVertical: 1 },
+  empty:         { textAlign: 'center', marginTop: 60, fontSize: 15 },
 });
