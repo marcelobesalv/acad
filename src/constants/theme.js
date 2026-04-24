@@ -33,7 +33,7 @@ const LIGHT_BASE = {
   textSecondary: '#6C6C70',
   border:        '#D1D1D6',
   danger:        '#E53935',
-  onAccent:      '#000000',
+  onAccent:      '#FFFFFF',
 };
 
 export function buildTheme(mode, accentKey) {
