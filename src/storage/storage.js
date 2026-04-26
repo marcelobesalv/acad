@@ -17,17 +17,23 @@ export async function getAllWorkouts() {
 
 export async function getAllWorkoutsSortedDesc() {
   const all = await readAll();
-  return [...all].sort((a, b) => b.date.localeCompare(a.date));
+  return [...all].sort((a, b) => {
+    const dateComp = b.date.localeCompare(a.date);
+    if (dateComp !== 0) return dateComp;
+    return b.id.localeCompare(a.id); // newer session first within same day
+  });
 }
 
-export async function getWorkoutByDate(date) {
+export async function getWorkoutsByDate(date) {
   const all = await readAll();
-  return all.find(w => w.date === date) ?? null;
+  return all
+    .filter(w => w.date === date)
+    .sort((a, b) => a.id.localeCompare(b.id)); // oldest first = Treino 1, 2...
 }
 
 export async function saveWorkout(workout) {
   const all = await readAll();
-  const idx = all.findIndex(w => w.date === workout.date);
+  const idx = all.findIndex(w => w.id === workout.id); // find by ID, allows multiple per day
   if (idx >= 0) {
     all[idx] = workout;
   } else {
@@ -44,14 +50,19 @@ export async function getAllExerciseNames() {
 
 export async function getExerciseHistory(name) {
   const all = await readAll();
-  return all
-    .filter(w => w.exercises.some(e => e.name === name))
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map(w => {
-      const ex = w.exercises.find(e => e.name === name);
-      const maxWeight = Math.max(...ex.sets.map(s => s.weight));
-      return { date: w.date, maxWeight };
-    });
+  // Group by date, keep max weight across all same-day sessions
+  const byDate = {};
+  for (const w of all) {
+    const ex = w.exercises.find(e => e.name === name);
+    if (!ex || ex.sets.length === 0) continue;
+    const maxWeight = Math.max(...ex.sets.map(s => s.weight));
+    if (!byDate[w.date] || maxWeight > byDate[w.date]) {
+      byDate[w.date] = maxWeight;
+    }
+  }
+  return Object.keys(byDate)
+    .sort()
+    .map(date => ({ date, maxWeight: byDate[date] }));
 }
 
 export async function replaceAllWorkouts(workouts) {

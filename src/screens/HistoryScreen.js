@@ -5,6 +5,12 @@ import { getAllWorkoutsSortedDesc, replaceAllWorkouts } from '../storage/storage
 import { exportWorkouts, pickAndReadBackup } from '../utils/exportImport';
 import { useTheme } from '../context/ThemeContext';
 
+function formatDate(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const d = new Date(year, month - 1, day);
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
 function calcVolume(exercises) {
   return exercises.reduce(
     (total, ex) => total + ex.sets.reduce((s, set) => s + set.reps * set.weight, 0),
@@ -12,7 +18,7 @@ function calcVolume(exercises) {
   );
 }
 
-function WorkoutRow({ workout }) {
+function WorkoutRow({ workout, label }) {
   const { theme: C, mode } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const volume = calcVolume(workout.exercises);
@@ -21,7 +27,7 @@ function WorkoutRow({ workout }) {
     <View style={[s.card, { backgroundColor: C.surface, borderLeftColor: C.accent },
       mode === 'light' && { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 }]}>
       <TouchableOpacity style={s.cardHeader} onPress={() => setExpanded(e => !e)}>
-        <Text style={[s.dateText, { color: C.text }]}>{workout.date}</Text>
+        <Text style={[s.workoutLabel, { color: C.text }]}>{label}</Text>
         <Text style={[s.volText, { color: C.accent }]}>{volume.toFixed(1)} kg total</Text>
         <Text style={[s.chevron, { color: C.textSecondary }]}>{expanded ? '▲' : '▼'}</Text>
       </TouchableOpacity>
@@ -44,6 +50,22 @@ function WorkoutRow({ workout }) {
   );
 }
 
+function DateGroup({ group }) {
+  const { theme: C } = useTheme();
+  return (
+    <View style={s.dateGroup}>
+      <Text style={[s.dateHeader, { color: C.accent }]}>{formatDate(group.date)}</Text>
+      {group.workouts.map((w, i) => (
+        <WorkoutRow
+          key={w.id}
+          workout={w}
+          label={group.workouts.length > 1 ? `Treino ${i + 1}` : 'Treino'}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function HistoryScreen() {
   const { theme: C } = useTheme();
   const [workouts, setWorkouts] = useState([]);
@@ -55,6 +77,18 @@ export default function HistoryScreen() {
       return () => { active = false; };
     }, [])
   );
+
+  // Group workouts by date (order already guaranteed by getAllWorkoutsSortedDesc)
+  const dateGroups = (() => {
+    const map = {};
+    for (const w of workouts) {
+      if (!map[w.date]) map[w.date] = [];
+      map[w.date].push(w);
+    }
+    return Object.keys(map)
+      .sort((a, b) => b.localeCompare(a))
+      .map(date => ({ date, workouts: map[date] }));
+  })();
 
   async function handleExport() {
     try { await exportWorkouts(workouts); }
@@ -95,9 +129,9 @@ export default function HistoryScreen() {
         </TouchableOpacity>
       </View>
       <FlatList
-        data={workouts}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => <WorkoutRow workout={item} />}
+        data={dateGroups}
+        keyExtractor={item => item.date}
+        renderItem={({ item }) => <DateGroup group={item} />}
         contentContainerStyle={{ padding: 16, paddingTop: 0 }}
         ListEmptyComponent={<Text style={[s.empty, { color: C.textSecondary }]}>No workouts logged yet.</Text>}
       />
@@ -110,9 +144,11 @@ const s = StyleSheet.create({
   actionRow:     { flexDirection: 'row', padding: 16, paddingBottom: 8 },
   actionBtn:     { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center', marginHorizontal: 4 },
   actionBtnText: { fontWeight: '600', fontSize: 14 },
-  card:          { borderRadius: 10, marginBottom: 12, overflow: 'hidden', borderLeftWidth: 3 },
+  dateGroup:     { marginBottom: 20 },
+  dateHeader:    { fontSize: 14, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  card:          { borderRadius: 10, marginBottom: 8, overflow: 'hidden', borderLeftWidth: 3 },
   cardHeader:    { flexDirection: 'row', alignItems: 'center', padding: 14 },
-  dateText:      { flex: 1, fontSize: 16, fontWeight: '700' },
+  workoutLabel:  { flex: 1, fontSize: 16, fontWeight: '700' },
   volText:       { fontWeight: '600', marginRight: 10, fontSize: 13 },
   chevron:       { fontSize: 12 },
   detail:        { paddingHorizontal: 14, paddingBottom: 12 },

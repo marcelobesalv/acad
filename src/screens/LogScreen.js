@@ -1,10 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   Modal, StyleSheet, Alert, KeyboardAvoidingView, Platform, SafeAreaView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { getWorkoutByDate, saveWorkout, generateId, getTodayString } from '../storage/storage';
+import { getWorkoutsByDate, saveWorkout, generateId, getTodayString } from '../storage/storage';
 import { useTheme } from '../context/ThemeContext';
 
 function formatDate(dateStr) {
@@ -16,34 +16,77 @@ function formatDate(dateStr) {
 export default function LogScreen() {
   const { theme: C, mode } = useTheme();
   const today = getTodayString();
-  const [exercises, setExercises]         = useState([]);
-  const [workoutId, setWorkoutId]         = useState(null);
-  const [isSaving, setIsSaving]           = useState(false);
+
+  const [todayWorkouts, setTodayWorkouts]   = useState([]);
+  const [activeIdx, setActiveIdx]           = useState(0);
+  const [savedExercises, setSavedExercises] = useState([]);
+  const [isSaving, setIsSaving]             = useState(false);
   const [exModalVisible, setExModalVisible] = useState(false);
-  const [newExName, setNewExName]         = useState('');
+  const [newExName, setNewExName]           = useState('');
   const [setModalVisible, setSetModalVisible] = useState(false);
-  const [activeExIdx, setActiveExIdx]     = useState(null);
-  const [newReps, setNewReps]             = useState('');
-  const [newWeight, setNewWeight]         = useState('');
+  const [activeExIdx, setActiveExIdx]       = useState(null);
+  const [newReps, setNewReps]               = useState('');
+  const [newWeight, setNewWeight]           = useState('');
+  const loadedDateRef = useRef(null);
+
+  const activeWorkout = todayWorkouts[activeIdx];
+  const exercises     = activeWorkout?.exercises ?? [];
+  const hasChanges    = JSON.stringify(exercises) !== JSON.stringify(savedExercises);
 
   useFocusEffect(
     useCallback(() => {
+      if (loadedDateRef.current === today) return;
       let active = true;
       (async () => {
-        const existing = await getWorkoutByDate(today);
+        const workouts = await getWorkoutsByDate(today);
         if (active) {
-          setExercises(existing?.exercises ?? []);
-          setWorkoutId(existing?.id ?? null);
+          const ws = workouts.length > 0
+            ? workouts
+            : [{ id: generateId(), date: today, exercises: [] }];
+          setTodayWorkouts(ws);
+          setActiveIdx(0);
+          setSavedExercises(ws[0].exercises);
+          loadedDateRef.current = today;
         }
       })();
       return () => { active = false; };
     }, [today])
   );
 
+  function updateExercises(updater) {
+    setTodayWorkouts(prev => prev.map((w, i) =>
+      i === activeIdx
+        ? { ...w, exercises: typeof updater === 'function' ? updater(w.exercises) : updater }
+        : w
+    ));
+  }
+
+  async function silentSave() {
+    if (!activeWorkout || exercises.length === 0) return;
+    await saveWorkout({ ...activeWorkout, date: today });
+    setSavedExercises([...exercises]);
+  }
+
+  async function switchToWorkout(idx) {
+    if (idx === activeIdx) return;
+    if (hasChanges && exercises.length > 0) await silentSave();
+    setSavedExercises(todayWorkouts[idx]?.exercises ?? []);
+    setActiveIdx(idx);
+  }
+
+  async function addNewWorkout() {
+    if (hasChanges && exercises.length > 0) await silentSave();
+    const newWorkout = { id: generateId(), date: today, exercises: [] };
+    const newIdx = todayWorkouts.length;
+    setTodayWorkouts(prev => [...prev, newWorkout]);
+    setActiveIdx(newIdx);
+    setSavedExercises([]);
+  }
+
   function handleAddExercise() {
     const name = newExName.trim();
     if (!name) return;
-    setExercises(prev => [...prev, { name, sets: [] }]);
+    updateExercises(prev => [...prev, { name, sets: [] }]);
     setNewExName('');
     setExModalVisible(false);
   }
@@ -62,7 +105,7 @@ export default function LogScreen() {
       Alert.alert('Invalid input', 'Enter valid reps and weight.');
       return;
     }
-    setExercises(prev =>
+    updateExercises(prev =>
       prev.map((ex, i) =>
         i === activeExIdx ? { ...ex, sets: [...ex.sets, { reps, weight }] } : ex
       )
@@ -70,8 +113,20 @@ export default function LogScreen() {
     setSetModalVisible(false);
   }
 
+  function duplicateSet(exIdx, setIdx) {
+    updateExercises(prev =>
+      prev.map((ex, i) => {
+        if (i !== exIdx) return ex;
+        const copy = { ...ex.sets[setIdx] };
+        const newSets = [...ex.sets];
+        newSets.splice(setIdx + 1, 0, copy);
+        return { ...ex, sets: newSets };
+      })
+    );
+  }
+
   function removeSet(exIdx, setIdx) {
-    setExercises(prev =>
+    updateExercises(prev =>
       prev.map((ex, i) =>
         i === exIdx ? { ...ex, sets: ex.sets.filter((_, j) => j !== setIdx) } : ex
       )
@@ -79,7 +134,7 @@ export default function LogScreen() {
   }
 
   function removeExercise(idx) {
-    setExercises(prev => prev.filter((_, i) => i !== idx));
+    updateExercises(prev => prev.filter((_, i) => i !== idx));
   }
 
   async function handleSave() {
@@ -89,7 +144,8 @@ export default function LogScreen() {
     }
     setIsSaving(true);
     try {
-      await saveWorkout({ id: workoutId ?? generateId(), date: today, exercises });
+      await saveWorkout({ ...activeWorkout, date: today });
+      setSavedExercises([...exercises]);
       Alert.alert('Saved', 'Workout saved successfully.');
     } catch (e) {
       Alert.alert('Error', e.message);
@@ -101,6 +157,32 @@ export default function LogScreen() {
   return (
     <SafeAreaView style={[s.root, { backgroundColor: C.background }]}>
       <Text style={[s.dateHeader, { color: C.accent }]}>{formatDate(today)}</Text>
+
+      {/* Workout selector */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={s.selectorScroll}
+        contentContainerStyle={s.selectorContent}
+      >
+        {todayWorkouts.map((w, i) => (
+          <TouchableOpacity
+            key={w.id}
+            style={[s.pill, { backgroundColor: i === activeIdx ? C.accent : C.surface }]}
+            onPress={() => switchToWorkout(i)}
+          >
+            <Text style={[s.pillText, { color: i === activeIdx ? C.onAccent : C.text }]}>
+              Treino {i + 1}
+            </Text>
+          </TouchableOpacity>
+        ))}
+        <TouchableOpacity
+          style={[s.pill, { backgroundColor: C.surface, borderWidth: 1, borderColor: C.accent }]}
+          onPress={addNewWorkout}
+        >
+          <Text style={[s.pillText, { color: C.accent }]}>+ Novo</Text>
+        </TouchableOpacity>
+      </ScrollView>
 
       <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: 16 }}>
         {exercises.map((ex, exIdx) => (
@@ -121,6 +203,13 @@ export default function LogScreen() {
                 <Text style={[s.setVal, { color: C.text }]}>
                   {set.reps} reps × {set.weight} kg
                 </Text>
+                <TouchableOpacity
+                  onPress={() => duplicateSet(exIdx, setIdx)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={s.dupBtn}
+                >
+                  <Text style={[s.dupBtnText, { color: C.accent }]}>⧉</Text>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => removeSet(exIdx, setIdx)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Text style={[s.danger, { color: C.danger }]}>×</Text>
                 </TouchableOpacity>
@@ -142,9 +231,11 @@ export default function LogScreen() {
         <TouchableOpacity style={[s.addExBtn, { borderLeftColor: C.accent }]} onPress={() => setExModalVisible(true)}>
           <Text style={[s.addExBtnText, { color: C.accent }]}>+ Add Exercise</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.saveBtn, { backgroundColor: C.accent }]} onPress={handleSave} disabled={isSaving}>
-          <Text style={[s.saveBtnText, { color: C.onAccent }]}>{isSaving ? 'Saving…' : 'Save Workout'}</Text>
-        </TouchableOpacity>
+        {hasChanges && (
+          <TouchableOpacity style={[s.saveBtn, { backgroundColor: C.accent }]} onPress={handleSave} disabled={isSaving}>
+            <Text style={[s.saveBtnText, { color: C.onAccent }]}>{isSaving ? 'Saving…' : 'Save Workout'}</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Add Exercise Modal */}
@@ -220,32 +311,38 @@ export default function LogScreen() {
 }
 
 const s = StyleSheet.create({
-  root:        { flex: 1 },
-  dateHeader:  { fontSize: 20, fontWeight: '700', padding: 16, paddingBottom: 8 },
-  scroll:      { flex: 1, paddingHorizontal: 16 },
-  card:        { borderRadius: 10, padding: 14, marginBottom: 12, borderLeftWidth: 3 },
-  cardHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  exName:      { fontSize: 17, fontWeight: '700', flex: 1 },
-  setRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 5 },
-  setBadge:    { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  setBadgeText:{ fontSize: 11, fontWeight: '700' },
-  setVal:      { flex: 1, fontSize: 15 },
-  danger:      { fontWeight: '600' },
-  addSetBtn:   { marginTop: 10, paddingVertical: 8, borderRadius: 6, borderWidth: 1, alignItems: 'center' },
-  addSetBtnText: { fontWeight: '600' },
-  empty:       { textAlign: 'center', marginTop: 40, fontSize: 15 },
-  footer:      { padding: 16, paddingTop: 8 },
-  addExBtn:    { padding: 14, borderRadius: 10, alignItems: 'center', marginBottom: 10, borderLeftWidth: 3 },
-  addExBtnText:{ fontWeight: '700', fontSize: 16 },
-  saveBtn:     { padding: 16, borderRadius: 10, alignItems: 'center' },
-  saveBtnText: { fontWeight: '700', fontSize: 17 },
-  overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', padding: 24 },
-  modalCard:   { borderRadius: 16, overflow: 'hidden' },
+  root:           { flex: 1 },
+  dateHeader:     { fontSize: 20, fontWeight: '700', padding: 16, paddingBottom: 8 },
+  selectorScroll: { flexGrow: 0, paddingHorizontal: 16 },
+  selectorContent:{ flexDirection: 'row', paddingBottom: 12, gap: 8 },
+  pill:           { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
+  pillText:       { fontWeight: '600', fontSize: 14 },
+  scroll:         { flex: 1, paddingHorizontal: 16 },
+  card:           { borderRadius: 10, padding: 14, marginBottom: 12, borderLeftWidth: 3 },
+  cardHeader:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  exName:         { fontSize: 17, fontWeight: '700', flex: 1 },
+  setRow:         { flexDirection: 'row', alignItems: 'center', paddingVertical: 5 },
+  setBadge:       { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  setBadgeText:   { fontSize: 11, fontWeight: '700' },
+  setVal:         { flex: 1, fontSize: 15 },
+  danger:         { fontWeight: '600' },
+  dupBtn:         { marginRight: 10 },
+  dupBtnText:     { fontSize: 16, fontWeight: '600' },
+  addSetBtn:      { marginTop: 10, paddingVertical: 8, borderRadius: 6, borderWidth: 1, alignItems: 'center' },
+  addSetBtnText:  { fontWeight: '600' },
+  empty:          { textAlign: 'center', marginTop: 40, fontSize: 15 },
+  footer:         { padding: 16, paddingTop: 8 },
+  addExBtn:       { padding: 14, borderRadius: 10, alignItems: 'center', marginBottom: 10, borderLeftWidth: 3 },
+  addExBtnText:   { fontWeight: '700', fontSize: 16 },
+  saveBtn:        { padding: 16, borderRadius: 10, alignItems: 'center' },
+  saveBtnText:    { fontWeight: '700', fontSize: 17 },
+  overlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', padding: 24 },
+  modalCard:      { borderRadius: 16, overflow: 'hidden' },
   modalAccentBar: { height: 4, width: '100%' },
-  modalContent:{ padding: 20 },
-  modalTitle:  { fontSize: 18, fontWeight: '700', marginBottom: 16 },
-  input:       { borderRadius: 8, padding: 13, marginBottom: 12, fontSize: 16 },
-  modalBtns:   { flexDirection: 'row', marginTop: 4 },
+  modalContent:   { padding: 20 },
+  modalTitle:     { fontSize: 18, fontWeight: '700', marginBottom: 16 },
+  input:          { borderRadius: 8, padding: 13, marginBottom: 12, fontSize: 16 },
+  modalBtns:      { flexDirection: 'row', marginTop: 4 },
   modalBtnCancel:     { flex: 1, padding: 13, borderRadius: 8, alignItems: 'center', marginRight: 8 },
   modalBtnCancelText: { fontWeight: '600' },
   modalBtnAccent:     { flex: 1, padding: 13, borderRadius: 8, alignItems: 'center' },
