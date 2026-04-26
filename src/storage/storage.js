@@ -28,7 +28,7 @@ export async function getWorkoutsByDate(date) {
   const all = await readAll();
   return all
     .filter(w => w.date === date)
-    .sort((a, b) => a.id.localeCompare(b.id)); // oldest first = Treino 1, 2...
+    .sort((a, b) => a.id.localeCompare(b.id)); // oldest first = Session 1, 2...
 }
 
 export async function saveWorkout(workout) {

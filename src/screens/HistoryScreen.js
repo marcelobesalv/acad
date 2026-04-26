@@ -59,7 +59,7 @@ function DateGroup({ group }) {
         <WorkoutRow
           key={w.id}
           workout={w}
-          label={group.workouts.length > 1 ? `Treino ${i + 1}` : 'Treino'}
+          label={group.workouts.length > 1 ? `Session ${i + 1}` : 'Session'}
         />
       ))}
     </View>

@@ -172,7 +172,7 @@ export default function LogScreen() {
             onPress={() => switchToWorkout(i)}
           >
             <Text style={[s.pillText, { color: i === activeIdx ? C.onAccent : C.text }]}>
-              Treino {i + 1}
+              Session {i + 1}
             </Text>
           </TouchableOpacity>
         ))}
@@ -180,7 +180,7 @@ export default function LogScreen() {
           style={[s.pill, { backgroundColor: C.surface, borderWidth: 1, borderColor: C.accent }]}
           onPress={addNewWorkout}
         >
-          <Text style={[s.pillText, { color: C.accent }]}>+ Novo</Text>
+          <Text style={[s.pillText, { color: C.accent }]}>+ New</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -189,7 +189,14 @@ export default function LogScreen() {
           <View key={exIdx} style={[s.card, { backgroundColor: C.surface, borderLeftColor: C.accent },
             mode === 'light' && { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 }]}>
             <View style={s.cardHeader}>
-              <Text style={[s.exName, { color: C.text }]}>{ex.name}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.exName, { color: C.text }]}>{ex.name}</Text>
+                {ex.sets.length > 0 && (
+                  <Text style={[s.exMeta, { color: C.textSecondary }]}>
+                    {ex.sets.length} set{ex.sets.length !== 1 ? 's' : ''} · {ex.sets.reduce((s, set) => s + set.reps * set.weight, 0).toFixed(0)} kg vol
+                  </Text>
+                )}
+              </View>
               <TouchableOpacity onPress={() => removeExercise(exIdx)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Text style={[s.danger, { color: C.danger }]}>Remove</Text>
               </TouchableOpacity>
@@ -223,12 +230,16 @@ export default function LogScreen() {
         ))}
 
         {exercises.length === 0 && (
-          <Text style={[s.empty, { color: C.textSecondary }]}>No exercises yet. Tap below to add one.</Text>
+          <View style={s.emptyState}>
+            <Text style={s.emptyIcon}>🏋️</Text>
+            <Text style={[s.emptyTitle, { color: C.text }]}>No exercises yet</Text>
+            <Text style={[s.emptyHint, { color: C.textSecondary }]}>Tap "Add Exercise" below to start logging this session.</Text>
+          </View>
         )}
       </ScrollView>
 
-      <View style={s.footer}>
-        <TouchableOpacity style={[s.addExBtn, { borderLeftColor: C.accent }]} onPress={() => setExModalVisible(true)}>
+      <View style={[s.footer, { borderTopColor: C.border }]}>
+        <TouchableOpacity style={[s.addExBtn, { backgroundColor: C.surface, borderColor: C.accent }]} onPress={() => setExModalVisible(true)}>
           <Text style={[s.addExBtnText, { color: C.accent }]}>+ Add Exercise</Text>
         </TouchableOpacity>
         {hasChanges && (
@@ -320,7 +331,8 @@ const s = StyleSheet.create({
   scroll:         { flex: 1, paddingHorizontal: 16 },
   card:           { borderRadius: 10, padding: 14, marginBottom: 12, borderLeftWidth: 3 },
   cardHeader:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  exName:         { fontSize: 17, fontWeight: '700', flex: 1 },
+  exName:         { fontSize: 17, fontWeight: '700' },
+  exMeta:         { fontSize: 12, marginTop: 2 },
   setRow:         { flexDirection: 'row', alignItems: 'center', paddingVertical: 5 },
   setBadge:       { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   setBadgeText:   { fontSize: 11, fontWeight: '700' },
@@ -330,9 +342,12 @@ const s = StyleSheet.create({
   dupBtnText:     { fontSize: 16, fontWeight: '600' },
   addSetBtn:      { marginTop: 10, paddingVertical: 8, borderRadius: 6, borderWidth: 1, alignItems: 'center' },
   addSetBtnText:  { fontWeight: '600' },
-  empty:          { textAlign: 'center', marginTop: 40, fontSize: 15 },
-  footer:         { padding: 16, paddingTop: 8 },
-  addExBtn:       { padding: 14, borderRadius: 10, alignItems: 'center', marginBottom: 10, borderLeftWidth: 3 },
+  emptyState:     { alignItems: 'center', marginTop: 60, paddingHorizontal: 32 },
+  emptyIcon:      { fontSize: 48, marginBottom: 16 },
+  emptyTitle:     { fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  emptyHint:      { fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  footer:         { padding: 16, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  addExBtn:       { padding: 14, borderRadius: 10, alignItems: 'center', marginBottom: 10, borderWidth: 1.5 },
   addExBtnText:   { fontWeight: '700', fontSize: 16 },
   saveBtn:        { padding: 16, borderRadius: 10, alignItems: 'center' },
   saveBtnText:    { fontWeight: '700', fontSize: 17 },
