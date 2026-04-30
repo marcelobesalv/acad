@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getAllWorkoutsSortedDesc, replaceAllWorkouts } from '../storage/storage';
 import { exportWorkouts, pickAndReadBackup } from '../utils/exportImport';
 import { useTheme } from '../context/ThemeContext';
+import WorkoutEditorModal from '../components/WorkoutEditorModal';
 
 function formatDate(dateStr) {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -18,7 +19,7 @@ function calcVolume(exercises) {
   );
 }
 
-function WorkoutRow({ workout, label }) {
+function WorkoutRow({ workout, label, onEdit }) {
   const { theme: C, mode } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const volume = calcVolume(workout.exercises);
@@ -29,6 +30,9 @@ function WorkoutRow({ workout, label }) {
       <TouchableOpacity style={s.cardHeader} onPress={() => setExpanded(e => !e)}>
         <Text style={[s.workoutLabel, { color: C.text }]}>{label}</Text>
         <Text style={[s.volText, { color: C.accent }]}>{volume.toFixed(1)} kg total</Text>
+        <TouchableOpacity onPress={onEdit} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={s.editBtn}>
+          <Text style={[s.editBtnText, { color: C.textSecondary }]}>Edit</Text>
+        </TouchableOpacity>
         <Text style={[s.chevron, { color: C.textSecondary }]}>{expanded ? '▲' : '▼'}</Text>
       </TouchableOpacity>
 
@@ -50,7 +54,7 @@ function WorkoutRow({ workout, label }) {
   );
 }
 
-function DateGroup({ group }) {
+function DateGroup({ group, onEdit }) {
   const { theme: C } = useTheme();
   return (
     <View style={s.dateGroup}>
@@ -60,6 +64,7 @@ function DateGroup({ group }) {
           key={w.id}
           workout={w}
           label={group.workouts.length > 1 ? `Session ${i + 1}` : 'Session'}
+          onEdit={() => onEdit(w)}
         />
       ))}
     </View>
@@ -69,6 +74,7 @@ function DateGroup({ group }) {
 export default function HistoryScreen() {
   const { theme: C } = useTheme();
   const [workouts, setWorkouts] = useState([]);
+  const [editingWorkout, setEditingWorkout] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -78,7 +84,6 @@ export default function HistoryScreen() {
     }, [])
   );
 
-  // Group workouts by date (order already guaranteed by getAllWorkoutsSortedDesc)
   const dateGroups = (() => {
     const map = {};
     for (const w of workouts) {
@@ -89,6 +94,11 @@ export default function HistoryScreen() {
       .sort((a, b) => b.localeCompare(a))
       .map(date => ({ date, workouts: map[date] }));
   })();
+
+  function handleWorkoutSaved(updated) {
+    setWorkouts(prev => prev.map(w => w.id === updated.id ? updated : w));
+    setEditingWorkout(null);
+  }
 
   async function handleExport() {
     try { await exportWorkouts(workouts); }
@@ -131,9 +141,16 @@ export default function HistoryScreen() {
       <FlatList
         data={dateGroups}
         keyExtractor={item => item.date}
-        renderItem={({ item }) => <DateGroup group={item} />}
+        renderItem={({ item }) => <DateGroup group={item} onEdit={setEditingWorkout} />}
         contentContainerStyle={{ padding: 16, paddingTop: 0 }}
         ListEmptyComponent={<Text style={[s.empty, { color: C.textSecondary }]}>No workouts logged yet.</Text>}
+      />
+
+      <WorkoutEditorModal
+        visible={editingWorkout !== null}
+        workout={editingWorkout}
+        onClose={() => setEditingWorkout(null)}
+        onSaved={handleWorkoutSaved}
       />
     </SafeAreaView>
   );
@@ -149,7 +166,9 @@ const s = StyleSheet.create({
   card:          { borderRadius: 10, marginBottom: 8, overflow: 'hidden', borderLeftWidth: 3 },
   cardHeader:    { flexDirection: 'row', alignItems: 'center', padding: 14 },
   workoutLabel:  { flex: 1, fontSize: 16, fontWeight: '700' },
-  volText:       { fontWeight: '600', marginRight: 10, fontSize: 13 },
+  volText:       { fontWeight: '600', marginRight: 8, fontSize: 13 },
+  editBtn:       { marginRight: 10 },
+  editBtnText:   { fontSize: 13, fontWeight: '600' },
   chevron:       { fontSize: 12 },
   detail:        { paddingHorizontal: 14, paddingBottom: 12 },
   exBlock:       { marginBottom: 10 },

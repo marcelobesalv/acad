@@ -10,11 +10,18 @@ import { useTheme } from '../context/ThemeContext';
 
 const screenWidth = Dimensions.get('window').width;
 
+const METRICS = [
+  { key: 'maxWeight',   label: 'Weight',  chartLabel: 'Max weight per session (kg)',   format: v => v.toFixed(1) },
+  { key: 'totalVolume', label: 'Volume',  chartLabel: 'Total volume per session (kg)',  format: v => v.toFixed(0) },
+  { key: 'maxReps',     label: 'Reps',    chartLabel: 'Max reps per session',           format: v => String(Math.round(v)) },
+];
+
 export default function ProgressScreen() {
   const { theme: C } = useTheme();
   const [names, setNames]               = useState([]);
   const [selected, setSelected]         = useState('');
-  const [chartData, setChartData]       = useState([]);
+  const [history, setHistory]           = useState([]);
+  const [metric, setMetric]             = useState('maxWeight');
   const [pickerVisible, setPickerVisible] = useState(false);
 
   useFocusEffect(
@@ -32,17 +39,16 @@ export default function ProgressScreen() {
   useEffect(() => {
     if (!selected) return;
     let active = true;
-    getExerciseHistory(selected).then(history => {
-      if (!active) return;
-      setChartData(history.map(p => ({
-        value: p.maxWeight,
-        label: p.date.slice(5),
-        dataPointText: String(p.maxWeight),
-      })));
-    });
+    getExerciseHistory(selected).then(h => { if (active) setHistory(h); });
     return () => { active = false; };
   }, [selected]);
 
+  const activeMetric = METRICS.find(m => m.key === metric);
+  const chartData = history.map(p => ({
+    value: p[metric],
+    label: p.date.slice(5),
+    dataPointText: activeMetric.format(p[metric]),
+  }));
   const chartWidth = Math.max(chartData.length * 70, screenWidth - 48);
 
   return (
@@ -57,9 +63,24 @@ export default function ProgressScreen() {
             <Text style={[s.chevron, { color: C.textSecondary }]}>▼</Text>
           </TouchableOpacity>
 
+          {/* Metric selector */}
+          <View style={[s.metricRow, { backgroundColor: C.surface }]}>
+            {METRICS.map(m => (
+              <TouchableOpacity
+                key={m.key}
+                style={[s.metricBtn, metric === m.key && { backgroundColor: C.accent }]}
+                onPress={() => setMetric(m.key)}
+              >
+                <Text style={[s.metricBtnText, { color: metric === m.key ? C.onAccent : C.textSecondary }]}>
+                  {m.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           {chartData.length >= 2 ? (
             <View style={[s.chartCard, { backgroundColor: C.surface }]}>
-              <Text style={[s.chartLabel, { color: C.textSecondary }]}>Max weight per session (kg)</Text>
+              <Text style={[s.chartLabel, { color: C.textSecondary }]}>{activeMetric.chartLabel}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <LineChart
                   data={chartData}
@@ -90,7 +111,9 @@ export default function ProgressScreen() {
           ) : chartData.length === 1 ? (
             <View style={[s.singleCard, { backgroundColor: C.surface }]}>
               <Text style={[s.singleLabel, { color: C.textSecondary }]}>Only 1 session logged.</Text>
-              <Text style={[s.singleVal, { color: C.accent }]}>{chartData[0].value} kg</Text>
+              <Text style={[s.singleVal, { color: C.accent }]}>
+                {activeMetric.format(chartData[0].value)} {metric === 'maxReps' ? 'reps' : 'kg'}
+              </Text>
               <Text style={[s.singleHint, { color: C.textSecondary }]}>Log more sessions to see a chart.</Text>
             </View>
           ) : (
@@ -129,23 +152,26 @@ export default function ProgressScreen() {
 }
 
 const s = StyleSheet.create({
-  root:         { flex: 1, padding: 16 },
-  label:        { fontSize: 12, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 },
-  selectorBtn:  { borderRadius: 10, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  selectorText: { fontWeight: '700', fontSize: 16 },
-  chevron:      { fontSize: 12 },
-  chartCard:    { borderRadius: 10, padding: 16 },
-  chartLabel:   { fontSize: 12, marginBottom: 12 },
-  singleCard:   { borderRadius: 10, padding: 20, alignItems: 'center' },
-  singleLabel:  { fontSize: 14 },
-  singleVal:    { fontWeight: '700', fontSize: 28, marginVertical: 8 },
-  singleHint:   { fontSize: 13 },
-  empty:        { textAlign: 'center', marginTop: 60, fontSize: 15 },
-  overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', padding: 24 },
-  pickerCard:   { borderRadius: 16, padding: 16 },
-  pickerTitle:  { fontWeight: '700', fontSize: 18, marginBottom: 12 },
-  pickerItem:   { padding: 14, borderRadius: 8 },
+  root:           { flex: 1, padding: 16 },
+  label:          { fontSize: 12, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 },
+  selectorBtn:    { borderRadius: 10, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  selectorText:   { fontWeight: '700', fontSize: 16 },
+  chevron:        { fontSize: 12 },
+  metricRow:      { flexDirection: 'row', borderRadius: 10, padding: 4, marginBottom: 16 },
+  metricBtn:      { flex: 1, paddingVertical: 8, borderRadius: 7, alignItems: 'center' },
+  metricBtnText:  { fontWeight: '600', fontSize: 13 },
+  chartCard:      { borderRadius: 10, padding: 16 },
+  chartLabel:     { fontSize: 12, marginBottom: 12 },
+  singleCard:     { borderRadius: 10, padding: 20, alignItems: 'center' },
+  singleLabel:    { fontSize: 14 },
+  singleVal:      { fontWeight: '700', fontSize: 28, marginVertical: 8 },
+  singleHint:     { fontSize: 13 },
+  empty:          { textAlign: 'center', marginTop: 60, fontSize: 15 },
+  overlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', padding: 24 },
+  pickerCard:     { borderRadius: 16, padding: 16 },
+  pickerTitle:    { fontWeight: '700', fontSize: 18, marginBottom: 12 },
+  pickerItem:     { padding: 14, borderRadius: 8 },
   pickerItemText: { fontSize: 16 },
-  pickerClose:  { marginTop: 12, padding: 13, borderRadius: 8, alignItems: 'center' },
-  pickerCloseText: { fontWeight: '600' },
+  pickerClose:    { marginTop: 12, padding: 13, borderRadius: 8, alignItems: 'center' },
+  pickerCloseText:{ fontWeight: '600' },
 });

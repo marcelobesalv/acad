@@ -50,19 +50,26 @@ export async function getAllExerciseNames() {
 
 export async function getExerciseHistory(name) {
   const all = await readAll();
-  // Group by date, keep max weight across all same-day sessions
   const byDate = {};
   for (const w of all) {
     const ex = w.exercises.find(e => e.name === name);
     if (!ex || ex.sets.length === 0) continue;
-    const maxWeight = Math.max(...ex.sets.map(s => s.weight));
-    if (!byDate[w.date] || maxWeight > byDate[w.date]) {
-      byDate[w.date] = maxWeight;
+    const maxWeight   = Math.max(...ex.sets.map(s => s.weight));
+    const totalVolume = ex.sets.reduce((sum, s) => sum + s.reps * s.weight, 0);
+    const maxReps     = Math.max(...ex.sets.map(s => s.reps));
+    if (!byDate[w.date]) {
+      byDate[w.date] = { maxWeight, totalVolume, maxReps };
+    } else {
+      byDate[w.date] = {
+        maxWeight:   Math.max(byDate[w.date].maxWeight, maxWeight),
+        totalVolume: byDate[w.date].totalVolume + totalVolume,
+        maxReps:     Math.max(byDate[w.date].maxReps, maxReps),
+      };
     }
   }
   return Object.keys(byDate)
     .sort()
-    .map(date => ({ date, maxWeight: byDate[date] }));
+    .map(date => ({ date, ...byDate[date] }));
 }
 
 export async function replaceAllWorkouts(workouts) {
