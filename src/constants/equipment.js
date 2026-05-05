@@ -1,5 +1,6 @@
 export const EQUIPMENT_OPTIONS = [
   { key: 'machine', label: 'Machine' },
+  { key: 'cable', label: 'Cable' },
   { key: 'dumbbell', label: 'Dumbbell' },
   { key: 'barbell', label: 'Barbell' },
 ];

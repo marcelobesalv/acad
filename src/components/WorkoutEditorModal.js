@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  Modal, StyleSheet, Alert, KeyboardAvoidingView, Platform, SafeAreaView,
+  Modal, StyleSheet, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { saveWorkout } from '../storage/storage';
 import { useTheme } from '../context/ThemeContext';
 import { EQUIPMENT_OPTIONS } from '../constants/equipment';
@@ -154,7 +155,7 @@ export default function WorkoutEditorModal({ visible, workout, onClose, onSaved 
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={[s.root, { backgroundColor: C.background }]}>
+      <SafeAreaView edges={['top', 'bottom']} style={[s.root, { backgroundColor: C.background }]}>
         <View style={[s.header, { borderBottomColor: C.border, backgroundColor: C.surface }]}>
           <TouchableOpacity onPress={onClose} style={s.headerBtn}>
             <Text style={[s.headerBtnText, { color: C.textSecondary }]}>Cancel</Text>
@@ -364,8 +365,8 @@ const s = StyleSheet.create({
   cardHeader:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 },
   exNameInput:       { flex: 1, borderRadius: 8, padding: 11, fontSize: 16, fontWeight: '700' },
   fieldLabel:        { fontSize: 11, fontWeight: '700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.7 },
-  segmentRow:        { flexDirection: 'row', gap: 8, marginBottom: 10 },
-  segmentBtn:        { flex: 1, borderRadius: 8, borderWidth: 1, paddingVertical: 9, alignItems: 'center' },
+  segmentRow:        { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  segmentBtn:        { minWidth: '48%', flexGrow: 1, borderRadius: 8, borderWidth: 1, paddingVertical: 9, alignItems: 'center' },
   segmentText:       { fontSize: 11, fontWeight: '700' },
   setRow:            { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, gap: 6 },
   setBadge:          { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
