@@ -44,44 +44,40 @@ export async function saveWorkout(workout) {
 
 export async function getAllExerciseNames() {
   const all = await readAll();
-  const names = new Set(all.flatMap(w => w.exercises.map(e => e.name)));
+  const names = new Set(all.flatMap(w => (w.exercises || []).map(e => e.name).filter(Boolean)));
   return [...names].sort();
 }
 
-function getMetricValueForExercise(exercise, metric) {
-  const sets = exercise?.sets || [];
-  if (sets.length === 0) return null;
-
-  if (metric === 'volume') {
-    return sets.reduce((sum, set) => sum + Number(set.reps) * Number(set.weight), 0);
-  }
-
-  if (metric === 'reps') {
-    return sets.reduce((sum, set) => sum + Number(set.reps), 0);
-  }
-
-  return Math.max(...sets.map(set => Number(set.weight)));
-}
-
-export async function getExerciseHistory(name, metric = 'weight') {
+export async function getExerciseHistory(name) {
   const all = await readAll();
-  // Group by date. Weight tracks the best set; reps and volume are daily totals.
   const byDate = {};
+
   for (const w of all) {
     const matching = (w.exercises || []).filter(e => e.name === name);
     for (const ex of matching) {
-      const value = getMetricValueForExercise(ex, metric);
-      if (!value) continue;
-      if (metric === 'weight') {
-        if (!byDate[w.date] || value > byDate[w.date]) byDate[w.date] = value;
+      const sets = ex.sets || [];
+      if (sets.length === 0) continue;
+
+      const maxWeight = Math.max(...sets.map(set => Number(set.weight)));
+      const totalVolume = sets.reduce((sum, set) => sum + Number(set.reps) * Number(set.weight), 0);
+      const maxReps = Math.max(...sets.map(set => Number(set.reps)));
+      if (!Number.isFinite(maxWeight) || !Number.isFinite(totalVolume) || !Number.isFinite(maxReps)) continue;
+
+      if (!byDate[w.date]) {
+        byDate[w.date] = { maxWeight, totalVolume, maxReps };
       } else {
-        byDate[w.date] = (byDate[w.date] || 0) + value;
+        byDate[w.date] = {
+          maxWeight: Math.max(byDate[w.date].maxWeight, maxWeight),
+          totalVolume: byDate[w.date].totalVolume + totalVolume,
+          maxReps: Math.max(byDate[w.date].maxReps, maxReps),
+        };
       }
     }
   }
+
   return Object.keys(byDate)
     .sort()
-    .map(date => ({ date, value: byDate[date] }));
+    .map(date => ({ date, ...byDate[date] }));
 }
 
 export async function replaceAllWorkouts(workouts) {
