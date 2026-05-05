@@ -6,11 +6,30 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { getWorkoutsByDate, saveWorkout, generateId, getTodayString } from '../storage/storage';
 import { useTheme } from '../context/ThemeContext';
+import { EQUIPMENT_OPTIONS, getEquipmentLabel } from '../constants/equipment';
 
 function formatDate(dateStr) {
   const [year, month, day] = dateStr.split('-').map(Number);
   const d = new Date(year, month - 1, day);
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function getExerciseMeta(exercise) {
+  const meta = [];
+  const equipmentLabel = getEquipmentLabel(exercise.equipment);
+  const sets = exercise.sets || [];
+
+  if (equipmentLabel) meta.push(equipmentLabel);
+  if (sets.length > 0) {
+    const volume = sets.reduce(
+      (total, set) => total + Number(set.reps) * Number(set.weight),
+      0
+    );
+    meta.push(`${sets.length} set${sets.length !== 1 ? 's' : ''}`);
+    meta.push(`${volume.toFixed(0)} kg vol`);
+  }
+
+  return meta.join(' - ');
 }
 
 export default function LogScreen() {
@@ -23,6 +42,7 @@ export default function LogScreen() {
   const [isSaving, setIsSaving]             = useState(false);
   const [exModalVisible, setExModalVisible] = useState(false);
   const [newExName, setNewExName]           = useState('');
+  const [newEquipment, setNewEquipment]     = useState('machine');
   const [setModalVisible, setSetModalVisible] = useState(false);
   const [activeExIdx, setActiveExIdx]       = useState(null);
   const [newReps, setNewReps]               = useState('');
@@ -86,8 +106,9 @@ export default function LogScreen() {
   function handleAddExercise() {
     const name = newExName.trim();
     if (!name) return;
-    updateExercises(prev => [...prev, { name, sets: [] }]);
+    updateExercises(prev => [...prev, { name, equipment: newEquipment, sets: [] }]);
     setNewExName('');
+    setNewEquipment('machine');
     setExModalVisible(false);
   }
 
@@ -100,7 +121,7 @@ export default function LogScreen() {
 
   function handleAddSet() {
     const reps   = parseInt(newReps, 10);
-    const weight = parseFloat(newWeight);
+    const weight = parseFloat(newWeight.replace(',', '.'));
     if (!reps || reps <= 0 || !weight || weight <= 0) {
       Alert.alert('Invalid input', 'Enter valid reps and weight.');
       return;
@@ -146,7 +167,6 @@ export default function LogScreen() {
     try {
       await saveWorkout({ ...activeWorkout, date: today });
       setSavedExercises([...exercises]);
-      Alert.alert('Saved', 'Workout saved successfully.');
     } catch (e) {
       Alert.alert('Error', e.message);
     } finally {
@@ -191,11 +211,11 @@ export default function LogScreen() {
             <View style={s.cardHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[s.exName, { color: C.text }]}>{ex.name}</Text>
-                {ex.sets.length > 0 && (
+                {getExerciseMeta(ex) ? (
                   <Text style={[s.exMeta, { color: C.textSecondary }]}>
-                    {ex.sets.length} set{ex.sets.length !== 1 ? 's' : ''} · {ex.sets.reduce((s, set) => s + set.reps * set.weight, 0).toFixed(0)} kg vol
+                    {getExerciseMeta(ex)}
                   </Text>
-                )}
+                ) : null}
               </View>
               <TouchableOpacity onPress={() => removeExercise(exIdx)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Text style={[s.danger, { color: C.danger }]}>Remove</Text>
@@ -266,6 +286,26 @@ export default function LogScreen() {
                 returnKeyType="done"
                 onSubmitEditing={handleAddExercise}
               />
+              <Text style={[s.fieldLabel, { color: C.textSecondary }]}>Equipment</Text>
+              <View style={s.segmentRow}>
+                {EQUIPMENT_OPTIONS.map(option => {
+                  const selected = option.key === newEquipment;
+                  return (
+                    <TouchableOpacity
+                      key={option.key}
+                      style={[
+                        s.segmentBtn,
+                        { backgroundColor: selected ? C.accent : C.surfaceAlt, borderColor: selected ? C.accent : C.border },
+                      ]}
+                      onPress={() => setNewEquipment(option.key)}
+                    >
+                      <Text style={[s.segmentText, { color: selected ? C.onAccent : C.text }]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
               <View style={s.modalBtns}>
                 <TouchableOpacity style={[s.modalBtnCancel, { backgroundColor: C.surfaceAlt }]} onPress={() => setExModalVisible(false)}>
                   <Text style={[s.modalBtnCancelText, { color: C.text }]}>Cancel</Text>
@@ -357,6 +397,10 @@ const s = StyleSheet.create({
   modalContent:   { padding: 20 },
   modalTitle:     { fontSize: 18, fontWeight: '700', marginBottom: 16 },
   input:          { borderRadius: 8, padding: 13, marginBottom: 12, fontSize: 16 },
+  fieldLabel:     { fontSize: 12, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.7 },
+  segmentRow:     { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  segmentBtn:     { flex: 1, borderRadius: 8, borderWidth: 1, paddingVertical: 10, alignItems: 'center' },
+  segmentText:    { fontSize: 12, fontWeight: '700' },
   modalBtns:      { flexDirection: 'row', marginTop: 4 },
   modalBtnCancel:     { flex: 1, padding: 13, borderRadius: 8, alignItems: 'center', marginRight: 8 },
   modalBtnCancelText: { fontWeight: '600' },

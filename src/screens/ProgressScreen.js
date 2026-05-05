@@ -10,10 +10,22 @@ import { useTheme } from '../context/ThemeContext';
 
 const screenWidth = Dimensions.get('window').width;
 
+const METRICS = [
+  { key: 'weight', label: 'Weight', chartLabel: 'Max weight per day', unit: 'kg' },
+  { key: 'volume', label: 'Volume', chartLabel: 'Training volume per day', unit: 'kg vol' },
+  { key: 'reps', label: 'Reps', chartLabel: 'Total reps per day', unit: 'reps' },
+];
+
+function formatMetricValue(value, metric) {
+  if (metric === 'reps') return `${Math.round(value)}`;
+  return Number(value).toFixed(value % 1 === 0 ? 0 : 1);
+}
+
 export default function ProgressScreen() {
   const { theme: C } = useTheme();
   const [names, setNames]               = useState([]);
   const [selected, setSelected]         = useState('');
+  const [metric, setMetric]             = useState('weight');
   const [chartData, setChartData]       = useState([]);
   const [pickerVisible, setPickerVisible] = useState(false);
 
@@ -23,7 +35,10 @@ export default function ProgressScreen() {
       getAllExerciseNames().then(n => {
         if (!active) return;
         setNames(n);
-        if (n.length > 0 && !selected) setSelected(n[0]);
+        setSelected(current => {
+          if (current && n.includes(current)) return current;
+          return n[0] || '';
+        });
       });
       return () => { active = false; };
     }, [])
@@ -32,18 +47,19 @@ export default function ProgressScreen() {
   useEffect(() => {
     if (!selected) return;
     let active = true;
-    getExerciseHistory(selected).then(history => {
+    getExerciseHistory(selected, metric).then(history => {
       if (!active) return;
       setChartData(history.map(p => ({
-        value: p.maxWeight,
+        value: p.value,
         label: p.date.slice(5),
-        dataPointText: String(p.maxWeight),
+        dataPointText: formatMetricValue(p.value, metric),
       })));
     });
     return () => { active = false; };
-  }, [selected]);
+  }, [selected, metric]);
 
   const chartWidth = Math.max(chartData.length * 70, screenWidth - 48);
+  const selectedMetric = METRICS.find(item => item.key === metric) || METRICS[0];
 
   return (
     <SafeAreaView style={[s.root, { backgroundColor: C.background }]}>
@@ -57,9 +73,31 @@ export default function ProgressScreen() {
             <Text style={[s.chevron, { color: C.textSecondary }]}>▼</Text>
           </TouchableOpacity>
 
+          <View style={s.metricRow}>
+            {METRICS.map(item => {
+              const isSelected = item.key === metric;
+              return (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[
+                    s.metricBtn,
+                    { backgroundColor: isSelected ? C.accent : C.surface, borderColor: isSelected ? C.accent : C.border },
+                  ]}
+                  onPress={() => setMetric(item.key)}
+                >
+                  <Text style={[s.metricBtnText, { color: isSelected ? C.onAccent : C.text }]}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
           {chartData.length >= 2 ? (
             <View style={[s.chartCard, { backgroundColor: C.surface }]}>
-              <Text style={[s.chartLabel, { color: C.textSecondary }]}>Max weight per session (kg)</Text>
+              <Text style={[s.chartLabel, { color: C.textSecondary }]}>
+                {selectedMetric.chartLabel} ({selectedMetric.unit})
+              </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <LineChart
                   data={chartData}
@@ -90,7 +128,9 @@ export default function ProgressScreen() {
           ) : chartData.length === 1 ? (
             <View style={[s.singleCard, { backgroundColor: C.surface }]}>
               <Text style={[s.singleLabel, { color: C.textSecondary }]}>Only 1 session logged.</Text>
-              <Text style={[s.singleVal, { color: C.accent }]}>{chartData[0].value} kg</Text>
+              <Text style={[s.singleVal, { color: C.accent }]}>
+                {formatMetricValue(chartData[0].value, metric)} {selectedMetric.unit}
+              </Text>
               <Text style={[s.singleHint, { color: C.textSecondary }]}>Log more sessions to see a chart.</Text>
             </View>
           ) : (
@@ -131,9 +171,12 @@ export default function ProgressScreen() {
 const s = StyleSheet.create({
   root:         { flex: 1, padding: 16 },
   label:        { fontSize: 12, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 },
-  selectorBtn:  { borderRadius: 10, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  selectorBtn:  { borderRadius: 10, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   selectorText: { fontWeight: '700', fontSize: 16 },
   chevron:      { fontSize: 12 },
+  metricRow:    { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  metricBtn:    { flex: 1, borderRadius: 8, borderWidth: 1, paddingVertical: 10, alignItems: 'center' },
+  metricBtnText:{ fontSize: 12, fontWeight: '700' },
   chartCard:    { borderRadius: 10, padding: 16 },
   chartLabel:   { fontSize: 12, marginBottom: 12 },
   singleCard:   { borderRadius: 10, padding: 20, alignItems: 'center' },
