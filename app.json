@@ -21,7 +21,7 @@
         "backgroundColor": "#121212"
       }
     },
-    "sdkVersion": "51.0.0",
+    "sdkVersion": "54.0.0",
     "extra": {
       "eas": {
         "projectId": "6b4d326b-ecd8-44eb-9584-9e4d1ed8a9be"
