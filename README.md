@@ -1,105 +1,159 @@
-# ACAD Gym Tracker
+# ACAD Gym
 
-Offline gym tracking app — React Native + Expo SDK 54 (managed workflow).
+Offline-first gym tracking app built with React Native and Expo SDK 54.
+
+ACAD Gym is a compact workout log for recording daily training sessions, reviewing past workouts, tracking per-exercise progress, and keeping local JSON backups of your data.
 
 ## Features
 
-### Log
-- Multiple sessions per day — create a second session for a late-night workout without overwriting the morning one
-- Add exercises and sets (reps + weight) to the active session
-- Duplicate any set with one tap (⧉) to repeat the same reps/weight
-- Save button only appears when there are unsaved changes
-- Switching tabs preserves unsaved edits — they are not discarded on focus loss
+### Log Workouts
 
-### History
-- Workouts grouped by date; multiple sessions on the same day are labelled Session 1, Session 2, etc.
-- Tap **Edit** on any past session to open a full editor and correct reps, weights, or exercises
-- Total session volume shown on each card at a glance
+- Create multiple workout sessions on the same day without overwriting earlier sessions.
+- Add exercises with equipment tags: Machine, Cable, Dumbbell, or Barbell.
+- Record sets with reps and weight in kg.
+- Duplicate or remove individual sets.
+- Remove exercises from the current session.
+- Save only when the active session has unsaved changes.
+- Switching sessions preserves non-empty edits by saving them quietly first.
 
-### Progress
-- Per-exercise line chart with three selectable metrics:
-  - **Weight** — max weight lifted in any set that session
-  - **Volume** — total kg × reps across all sets (hypertrophy tracking)
-  - **Reps** — max reps in any single set
-- Multiple same-day sessions are merged: volume is summed, weight and reps take the max
+### Review History
 
-### Backup
-- **Export JSON** — on Android saves directly to a folder you pick; on iOS opens the share sheet
-- **Import JSON** — pick a backup file and restore all data
+- View workouts grouped by date, newest first.
+- See multiple workouts on the same date as Session 1, Session 2, and so on.
+- Expand workout cards to inspect exercises, equipment, sets, reps, and weights.
+- See total workout volume on each session card.
+- Edit any past workout in a full-screen editor.
 
-## Prerequisites
+### Track Progress
 
-- Node.js 20.19+
-- npm 9+
-- **Expo Go** (Android or iOS) for dev previews
+- Choose any logged exercise and chart progress over time.
+- Switch between three metrics:
+  - Weight: max weight used for the exercise on that day.
+  - Volume: total reps x kg across all sets on that day.
+  - Reps: max reps in a single set on that day.
+- Multiple sessions on the same day are merged for charting: volume is summed, weight and reps use the max value.
 
-## Setup
+### Backup Data
 
-```bash
-cd acad
-npm install
-```
+- Export workouts as JSON from the History screen.
+- Import a JSON backup to replace the current workout database.
+- Android exports are saved to a folder you choose through the system file picker.
 
-## Run with Expo Go (development)
+### Customize Appearance
 
-```bash
-npx expo start
-```
-
-Scan the QR code with Expo Go. The app works 100% offline once loaded.
-
-## Run on Android Emulator
-
-```bash
-npx expo start --android
-```
-
-Requires Android Studio with a virtual device configured.
-
-## Build APK — EAS Cloud (recommended)
-
-Requires a free Expo account. Local builds are not supported on Windows.
-
-```bash
-npm install -g eas-cli
-eas login
-eas build --platform android --profile production
-```
-
-The APK download link is printed in the terminal and available in your EAS dashboard.
-
-## Data persistence
-
-All data lives in `AsyncStorage` on the device. Uninstalling the app wipes it. Use **Export JSON** before reinstalling and **Import JSON** after to keep your history.
-
-## Project Structure
-
-```
-acad/
-├── App.js                          # Navigation setup (bottom tabs + theme)
-├── app.json                        # Expo config
-├── eas.json                        # EAS Build profiles
-├── package.json
-└── src/
-    ├── constants/theme.js          # Accent color palettes + buildTheme()
-    ├── context/ThemeContext.js     # Dark/light mode + accent state (persisted)
-    ├── storage/storage.js          # AsyncStorage CRUD, exercise history queries
-    ├── utils/exportImport.js       # JSON backup helpers
-    ├── components/
-    │   └── WorkoutEditorModal.js   # Reusable full-screen workout editor
-    └── screens/
-        ├── LogScreen.js            # Today's workout logging (multi-session)
-        ├── HistoryScreen.js        # Past workouts grouped by date
-        ├── ProgressScreen.js       # Per-exercise progress charts
-        └── SettingsScreen.js       # Dark mode toggle + accent color picker
-```
+- Toggle dark and light mode.
+- Pick an accent color from yellow, blue, teal, coral, or purple.
+- Theme choices are stored locally on the device.
 
 ## Tech Stack
 
 | Purpose | Package |
-|---|---|
-| Framework | Expo SDK 54 (managed) |
-| Storage | @react-native-async-storage/async-storage |
-| Navigation | @react-navigation/bottom-tabs |
+| --- | --- |
+| App runtime | Expo SDK 54 |
+| UI framework | React Native 0.81 |
+| Navigation | React Navigation bottom tabs |
+| Icons | Expo Vector Icons |
 | Charts | react-native-gifted-charts |
-| File I/O | expo-file-system · expo-sharing · expo-document-picker |
+| Storage | @react-native-async-storage/async-storage |
+| File import/export | expo-file-system, expo-document-picker, expo-sharing |
+| Build service | EAS Build |
+
+## Requirements
+
+- Node.js 20.19 or newer
+- npm 9 or newer
+- Expo Go for local device previews
+- Android Studio with a virtual device if you want to run an emulator
+- An Expo account and EAS CLI if you want to build an APK
+
+This project is currently configured for Android in `app.json`.
+
+## Setup
+
+```bash
+npm install
+```
+
+## Run Locally
+
+Start the Expo development server:
+
+```bash
+npm start
+```
+
+Then scan the QR code with Expo Go.
+
+Run directly on an Android emulator or connected Android device:
+
+```bash
+npm run android
+```
+
+## Build an APK
+
+Install and sign in to EAS CLI:
+
+```bash
+npm install -g eas-cli
+eas login
+```
+
+Start the production Android APK build:
+
+```bash
+npm run build:apk
+```
+
+The build output is available in the terminal and in the Expo/EAS dashboard.
+
+## Data Storage
+
+Workout data is stored locally in AsyncStorage under `@acad_workouts`. Theme settings are stored under `@theme_mode` and `@theme_accent`.
+
+Uninstalling the app clears local data. Export a JSON backup before reinstalling or moving to another device, then import it from the History screen.
+
+Workout dates are stored as `YYYY-MM-DD` using the device's local date, and weights are stored in kilograms.
+
+## Available Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm start` | Start the Expo dev server |
+| `npm run android` | Start Expo and open the Android target |
+| `npm run build:apk` | Build a production Android APK with EAS |
+
+## Project Structure
+
+```text
+acad/
+|-- App.js                         # App entry, theme provider, bottom tab navigation
+|-- app.json                       # Expo app config
+|-- eas.json                       # EAS Build profiles
+|-- package.json                   # Scripts and dependencies
+|-- assets/                        # App icons
+|-- docs/                          # Planning and design notes
+`-- src/
+    |-- components/
+    |   `-- WorkoutEditorModal.js  # Full-screen editor for past workouts
+    |-- constants/
+    |   |-- equipment.js           # Equipment options and labels
+    |   `-- theme.js               # Color palettes and theme builder
+    |-- context/
+    |   `-- ThemeContext.js        # Persisted theme mode and accent state
+    |-- screens/
+    |   |-- LogScreen.js           # Today's workout logging
+    |   |-- HistoryScreen.js       # History, edit, import, and export
+    |   |-- ProgressScreen.js      # Exercise charts
+    |   `-- SettingsScreen.js      # Appearance controls
+    |-- storage/
+    |   `-- storage.js             # AsyncStorage workout accessors
+    `-- utils/
+        `-- exportImport.js        # JSON backup helpers
+```
+
+## Notes
+
+- The app is designed to work offline after it has loaded.
+- There are no automated tests configured yet.
+- Local Android builds are not required; EAS Cloud Build is the intended APK path.
