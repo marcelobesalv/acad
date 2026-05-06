@@ -7,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { ACCENTS } from '../constants/theme';
 
@@ -41,9 +42,10 @@ export default function SettingsScreen() {
                 key === accentKey && { borderWidth: 3, borderColor: mode === 'dark' ? '#FFFFFF' : '#1A1A1A' },
               ]}
               onPress={() => setAccent(key)}
+              accessibilityLabel={`Set ${key} accent color`}
             >
               {key === accentKey && (
-                <Text style={s.swatchCheck}>✓</Text>
+                <Ionicons name="checkmark-outline" size={22} color={mode === 'dark' ? '#FFFFFF' : '#111111'} />
               )}
             </TouchableOpacity>
           ))}
@@ -67,5 +69,4 @@ const s = StyleSheet.create({
   rowLabel:      { fontSize: 16, fontWeight: '500' },
   swatches:      { flexDirection: 'row', gap: 12 },
   swatch:        { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  swatchCheck:   { color: '#000000', fontWeight: '700', fontSize: 18 },
 });

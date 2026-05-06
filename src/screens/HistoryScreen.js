@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getAllWorkoutsSortedDesc, replaceAllWorkouts } from '../storage/storage';
 import { exportWorkouts, pickAndReadBackup } from '../utils/exportImport';
@@ -32,10 +33,15 @@ function WorkoutRow({ workout, label, onEdit }) {
         <TouchableOpacity style={s.summaryBtn} onPress={() => setExpanded(value => !value)}>
           <Text style={[s.workoutLabel, { color: C.text }]}>{label}</Text>
           <Text style={[s.volText, { color: C.accent }]}>{volume.toFixed(1)} kg total</Text>
-          <Text style={[s.chevron, { color: C.textSecondary }]}>{expanded ? '^' : 'v'}</Text>
+          <Ionicons name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'} size={16} color={C.textSecondary} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onEdit(workout)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={s.editBtn}>
-          <Text style={[s.editBtnText, { color: C.textSecondary }]}>Edit</Text>
+        <TouchableOpacity
+          onPress={() => onEdit(workout)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={s.iconOnlyBtn}
+          accessibilityLabel={`Edit ${label}`}
+        >
+          <Ionicons name="create-outline" size={20} color={C.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -140,10 +146,12 @@ export default function HistoryScreen() {
     <SafeAreaView style={[s.root, { backgroundColor: C.background }]}>
       <View style={s.actionRow}>
         <TouchableOpacity style={[s.actionBtn, { backgroundColor: C.surface }]} onPress={handleExport}>
-          <Text style={[s.actionBtnText, { color: C.accent }]}>Export JSON</Text>
+          <Ionicons name="cloud-upload-outline" size={18} color={C.accent} />
+          <Text style={[s.actionBtnText, { color: C.accent }]}>Export</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.actionBtn, { backgroundColor: C.surface }]} onPress={handleImport}>
-          <Text style={[s.actionBtnText, { color: C.accent }]}>Import JSON</Text>
+          <Ionicons name="cloud-download-outline" size={18} color={C.accent} />
+          <Text style={[s.actionBtnText, { color: C.accent }]}>Import</Text>
         </TouchableOpacity>
       </View>
       <FlatList
@@ -167,7 +175,7 @@ export default function HistoryScreen() {
 const s = StyleSheet.create({
   root:          { flex: 1 },
   actionRow:     { flexDirection: 'row', padding: 16, paddingBottom: 8 },
-  actionBtn:     { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center', marginHorizontal: 4 },
+  actionBtn:     { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7, marginHorizontal: 4 },
   actionBtnText: { fontWeight: '600', fontSize: 14 },
   dateGroup:     { marginBottom: 20 },
   dateHeader:    { fontSize: 14, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
@@ -176,8 +184,7 @@ const s = StyleSheet.create({
   summaryBtn:    { flex: 1, flexDirection: 'row', alignItems: 'center' },
   workoutLabel:  { flex: 1, fontSize: 16, fontWeight: '700' },
   volText:       { fontWeight: '600', marginRight: 10, fontSize: 13 },
-  editBtn:       { marginLeft: 10 },
-  editBtnText:   { fontSize: 13, fontWeight: '600' },
+  iconOnlyBtn:   { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
   chevron:       { fontSize: 14, width: 12, textAlign: 'center' },
   detail:        { paddingHorizontal: 14, paddingBottom: 12 },
   exBlock:       { marginBottom: 10 },

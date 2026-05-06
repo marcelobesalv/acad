@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, Modal, FlatList,
   StyleSheet, Dimensions, ScrollView, SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LineChart } from 'react-native-gifted-charts';
 import { getAllExerciseNames, getExerciseHistory } from '../storage/storage';
@@ -69,7 +70,7 @@ export default function ProgressScreen() {
           <Text style={[s.label, { color: C.textSecondary }]}>Exercise</Text>
           <TouchableOpacity style={[s.selectorBtn, { backgroundColor: C.surface }]} onPress={() => setPickerVisible(true)}>
             <Text style={[s.selectorText, { color: C.text }]}>{selected || 'Select exercise'}</Text>
-            <Text style={[s.chevron, { color: C.textSecondary }]}>v</Text>
+            <Ionicons name="chevron-down-outline" size={16} color={C.textSecondary} />
           </TouchableOpacity>
 
           <View style={[s.metricRow, { backgroundColor: C.surface }]}>
@@ -154,8 +155,12 @@ export default function ProgressScreen() {
                 </TouchableOpacity>
               )}
             />
-            <TouchableOpacity style={[s.pickerClose, { backgroundColor: C.surfaceAlt }]} onPress={() => setPickerVisible(false)}>
-              <Text style={[s.pickerCloseText, { color: C.textSecondary }]}>Close</Text>
+            <TouchableOpacity
+              style={[s.pickerClose, { backgroundColor: C.surfaceAlt }]}
+              onPress={() => setPickerVisible(false)}
+              accessibilityLabel="Close exercise picker"
+            >
+              <Ionicons name="close-outline" size={22} color={C.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -185,6 +190,6 @@ const s = StyleSheet.create({
   pickerTitle:    { fontWeight: '700', fontSize: 18, marginBottom: 12 },
   pickerItem:     { padding: 14, borderRadius: 8 },
   pickerItemText: { fontSize: 16 },
-  pickerClose:    { marginTop: 12, padding: 13, borderRadius: 8, alignItems: 'center' },
+  pickerClose:    { marginTop: 12, padding: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   pickerCloseText:{ fontWeight: '600' },
 });

@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   Modal, StyleSheet, Alert, KeyboardAvoidingView, Platform, SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getWorkoutsByDate, saveWorkout, generateId, getTodayString } from '../storage/storage';
 import { useTheme } from '../context/ThemeContext';
@@ -199,8 +200,10 @@ export default function LogScreen() {
         <TouchableOpacity
           style={[s.pill, { backgroundColor: C.surface, borderWidth: 1, borderColor: C.accent }]}
           onPress={addNewWorkout}
+          accessibilityLabel="New session"
         >
-          <Text style={[s.pillText, { color: C.accent }]}>+ New</Text>
+          <Ionicons name="add-circle-outline" size={16} color={C.accent} />
+          <Text style={[s.pillText, { color: C.accent }]}>Session</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -217,8 +220,13 @@ export default function LogScreen() {
                   </Text>
                 ) : null}
               </View>
-              <TouchableOpacity onPress={() => removeExercise(exIdx)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Text style={[s.danger, { color: C.danger }]}>Remove</Text>
+              <TouchableOpacity
+                onPress={() => removeExercise(exIdx)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={s.iconOnlyBtn}
+                accessibilityLabel={`Remove ${ex.name}`}
+              >
+                <Ionicons name="trash-outline" size={20} color={C.danger} />
               </TouchableOpacity>
             </View>
 
@@ -233,38 +241,46 @@ export default function LogScreen() {
                 <TouchableOpacity
                   onPress={() => duplicateSet(exIdx, setIdx)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  style={s.dupBtn}
+                  style={s.iconOnlyBtn}
+                  accessibilityLabel={`Duplicate set ${setIdx + 1}`}
                 >
-                  <Text style={[s.dupBtnText, { color: C.accent }]}>⧉</Text>
+                  <Ionicons name="copy-outline" size={18} color={C.accent} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => removeSet(exIdx, setIdx)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Text style={[s.danger, { color: C.danger }]}>×</Text>
+                <TouchableOpacity
+                  onPress={() => removeSet(exIdx, setIdx)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={s.iconOnlyBtn}
+                  accessibilityLabel={`Remove set ${setIdx + 1}`}
+                >
+                  <Ionicons name="close-circle-outline" size={20} color={C.danger} />
                 </TouchableOpacity>
               </View>
             ))}
 
             <TouchableOpacity style={[s.addSetBtn, { borderColor: C.accent }]} onPress={() => openSetModal(exIdx)}>
-              <Text style={[s.addSetBtnText, { color: C.accent }]}>+ Add Set</Text>
+              <Ionicons name="add-outline" size={18} color={C.accent} />
+              <Text style={[s.addSetBtnText, { color: C.accent }]}>Set</Text>
             </TouchableOpacity>
           </View>
         ))}
 
         {exercises.length === 0 && (
           <View style={s.emptyState}>
-            <Text style={s.emptyIcon}>🏋️</Text>
+            <Ionicons name="barbell-outline" size={50} color={C.textSecondary} style={s.emptyIcon} />
             <Text style={[s.emptyTitle, { color: C.text }]}>No exercises yet</Text>
-            <Text style={[s.emptyHint, { color: C.textSecondary }]}>Tap "Add Exercise" below to start logging this session.</Text>
+            <Text style={[s.emptyHint, { color: C.textSecondary }]}>Tap Exercise below to start logging this session.</Text>
           </View>
         )}
       </ScrollView>
 
       <View style={[s.footer, { borderTopColor: C.border }]}>
         <TouchableOpacity style={[s.addExBtn, { backgroundColor: C.surface, borderColor: C.accent }]} onPress={() => setExModalVisible(true)}>
-          <Text style={[s.addExBtnText, { color: C.accent }]}>+ Add Exercise</Text>
+          <Ionicons name="add-outline" size={20} color={C.accent} />
+          <Text style={[s.addExBtnText, { color: C.accent }]}>Exercise</Text>
         </TouchableOpacity>
         {hasChanges && (
           <TouchableOpacity style={[s.saveBtn, { backgroundColor: C.accent }]} onPress={handleSave} disabled={isSaving}>
-            <Text style={[s.saveBtnText, { color: C.onAccent }]}>{isSaving ? 'Saving…' : 'Save Workout'}</Text>
+            <Text style={[s.saveBtnText, { color: C.onAccent }]}>{isSaving ? 'Saving...' : 'Save'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -350,7 +366,8 @@ export default function LogScreen() {
                   <Text style={[s.modalBtnCancelText, { color: C.text }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[s.modalBtnAccent, { backgroundColor: C.accent }]} onPress={handleAddSet}>
-                  <Text style={[s.modalBtnAccentText, { color: C.onAccent }]}>Add Set</Text>
+                  <Ionicons name="add-outline" size={18} color={C.onAccent} />
+                  <Text style={[s.modalBtnAccentText, { color: C.onAccent }]}>Set</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -366,7 +383,7 @@ const s = StyleSheet.create({
   dateHeader:     { fontSize: 20, fontWeight: '700', padding: 16, paddingBottom: 8 },
   selectorScroll: { flexGrow: 0, paddingHorizontal: 16 },
   selectorContent:{ flexDirection: 'row', paddingBottom: 12, gap: 8 },
-  pill:           { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
+  pill:           { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
   pillText:       { fontWeight: '600', fontSize: 14 },
   scroll:         { flex: 1, paddingHorizontal: 16 },
   card:           { borderRadius: 10, padding: 14, marginBottom: 12, borderLeftWidth: 3 },
@@ -378,16 +395,17 @@ const s = StyleSheet.create({
   setBadgeText:   { fontSize: 11, fontWeight: '700' },
   setVal:         { flex: 1, fontSize: 15 },
   danger:         { fontWeight: '600' },
+  iconOnlyBtn:    { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
   dupBtn:         { marginRight: 10 },
   dupBtnText:     { fontSize: 16, fontWeight: '600' },
-  addSetBtn:      { marginTop: 10, paddingVertical: 8, borderRadius: 6, borderWidth: 1, alignItems: 'center' },
+  addSetBtn:      { marginTop: 10, paddingVertical: 8, borderRadius: 6, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
   addSetBtnText:  { fontWeight: '600' },
   emptyState:     { alignItems: 'center', marginTop: 60, paddingHorizontal: 32 },
   emptyIcon:      { fontSize: 48, marginBottom: 16 },
   emptyTitle:     { fontSize: 18, fontWeight: '700', marginBottom: 8 },
   emptyHint:      { fontSize: 14, textAlign: 'center', lineHeight: 20 },
   footer:         { padding: 16, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
-  addExBtn:       { padding: 14, borderRadius: 10, alignItems: 'center', marginBottom: 10, borderWidth: 1.5 },
+  addExBtn:       { padding: 14, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 10, borderWidth: 1.5 },
   addExBtnText:   { fontWeight: '700', fontSize: 16 },
   saveBtn:        { padding: 16, borderRadius: 10, alignItems: 'center' },
   saveBtnText:    { fontWeight: '700', fontSize: 17 },
@@ -404,6 +422,6 @@ const s = StyleSheet.create({
   modalBtns:      { flexDirection: 'row', marginTop: 4 },
   modalBtnCancel:     { flex: 1, padding: 13, borderRadius: 8, alignItems: 'center', marginRight: 8 },
   modalBtnCancelText: { fontWeight: '600' },
-  modalBtnAccent:     { flex: 1, padding: 13, borderRadius: 8, alignItems: 'center' },
+  modalBtnAccent:     { flex: 1, padding: 13, borderRadius: 8, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
   modalBtnAccentText: { fontWeight: '700' },
 });
