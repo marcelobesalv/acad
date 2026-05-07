@@ -8,6 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LineChart } from 'react-native-gifted-charts';
 import { getAllExerciseNames, getExerciseHistory } from '../storage/storage';
 import { useTheme } from '../context/ThemeContext';
+import { formatChartDate } from '../utils/dateFormat';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -18,7 +19,7 @@ const METRICS = [
 ];
 
 export default function ProgressScreen() {
-  const { theme: C } = useTheme();
+  const { theme: C, dateFormatKey } = useTheme();
   const [names, setNames]                 = useState([]);
   const [selected, setSelected]           = useState('');
   const [history, setHistory]             = useState([]);
@@ -56,10 +57,12 @@ export default function ProgressScreen() {
     .filter(point => Number.isFinite(Number(point[metric])))
     .map(point => ({
       value: Number(point[metric]),
-      label: point.date.slice(5),
+      label: formatChartDate(point.date, dateFormatKey),
       dataPointText: activeMetric.format(point[metric]),
     }));
-  const chartWidth = Math.max(chartData.length * 70, screenWidth - 48);
+  const chartSpacing = dateFormatKey === 'iso' ? 82 : 60;
+  const chartLabelWidth = dateFormatKey === 'iso' ? 72 : 48;
+  const chartWidth = Math.max(chartData.length * (chartSpacing + 10), screenWidth - 48);
 
   return (
     <SafeAreaView style={[s.root, { backgroundColor: C.background }]}>
@@ -107,14 +110,14 @@ export default function ProgressScreen() {
                   backgroundColor={C.surface}
                   xAxisColor={C.border}
                   yAxisColor={C.border}
-                  xAxisLabelTextStyle={{ color: C.textSecondary, fontSize: 10, width: 40 }}
+                  xAxisLabelTextStyle={{ color: C.textSecondary, fontSize: 10, width: chartLabelWidth }}
                   yAxisTextStyle={{ color: C.textSecondary, fontSize: 10 }}
                   hideRules={false}
                   rulesColor={C.border}
                   curved isAnimated
                   noOfSections={5}
                   initialSpacing={16}
-                  spacing={60}
+                  spacing={chartSpacing}
                   textShiftY={-10}
                   textShiftX={-6}
                   textFontSize={10}

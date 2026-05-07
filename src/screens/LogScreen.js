@@ -8,12 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getWorkoutsByDate, saveWorkout, generateId, getTodayString } from '../storage/storage';
 import { useTheme } from '../context/ThemeContext';
 import { EQUIPMENT_OPTIONS, getEquipmentLabel } from '../constants/equipment';
-
-function formatDate(dateStr) {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const d = new Date(year, month - 1, day);
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-}
+import { formatDisplayDate } from '../utils/dateFormat';
 
 function getExerciseMeta(exercise) {
   const meta = [];
@@ -34,7 +29,7 @@ function getExerciseMeta(exercise) {
 }
 
 export default function LogScreen() {
-  const { theme: C, mode } = useTheme();
+  const { theme: C, mode, dateFormatKey } = useTheme();
   const today = getTodayString();
 
   const [todayWorkouts, setTodayWorkouts]   = useState([]);
@@ -177,7 +172,7 @@ export default function LogScreen() {
 
   return (
     <SafeAreaView style={[s.root, { backgroundColor: C.background }]}>
-      <Text style={[s.dateHeader, { color: C.accent }]}>{formatDate(today)}</Text>
+      <Text style={[s.dateHeader, { color: C.accent }]}>{formatDisplayDate(today, dateFormatKey)}</Text>
 
       {/* Workout selector */}
       <ScrollView

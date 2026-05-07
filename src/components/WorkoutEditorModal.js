@@ -8,13 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { saveWorkout } from '../storage/storage';
 import { useTheme } from '../context/ThemeContext';
 import { EQUIPMENT_OPTIONS } from '../constants/equipment';
-
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const d = new Date(year, month - 1, day);
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-}
+import { formatDisplayDate } from '../utils/dateFormat';
 
 function parsePositiveNumber(value) {
   const normalized = String(value ?? '').replace(',', '.');
@@ -35,7 +29,7 @@ function cloneExercises(exercises = []) {
 }
 
 export default function WorkoutEditorModal({ visible, workout, onClose, onSaved }) {
-  const { theme: C, mode } = useTheme();
+  const { theme: C, mode, dateFormatKey } = useTheme();
 
   const [exercises, setExercises]             = useState([]);
   const [isSaving, setIsSaving]               = useState(false);
@@ -161,7 +155,7 @@ export default function WorkoutEditorModal({ visible, workout, onClose, onSaved 
           <TouchableOpacity onPress={onClose} style={s.headerBtn}>
             <Text style={[s.headerBtnText, { color: C.textSecondary }]}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={[s.headerTitle, { color: C.text }]}>{formatDate(workout?.date)}</Text>
+          <Text style={[s.headerTitle, { color: C.text }]}>{formatDisplayDate(workout?.date, dateFormatKey)}</Text>
           <TouchableOpacity onPress={handleSave} disabled={isSaving || !workout} style={s.headerBtn}>
             <Text style={[s.headerBtnText, { color: C.accent, fontWeight: '700' }]}>
               {isSaving ? 'Saving...' : 'Save'}

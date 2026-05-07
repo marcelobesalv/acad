@@ -43,7 +43,8 @@ ACAD Gym is a compact workout log for recording daily training sessions, reviewi
 
 - Toggle dark and light mode.
 - Pick an accent color from yellow, blue, teal, coral, or purple.
-- Theme choices are stored locally on the device.
+- Choose the date format used across the app.
+- Display choices are stored locally on the device.
 
 ## Tech Stack
 
@@ -109,11 +110,11 @@ The build output is available in the terminal and in the Expo/EAS dashboard.
 
 ## Data Storage
 
-Workout data is stored locally in AsyncStorage under `@acad_workouts`. Theme settings are stored under `@theme_mode` and `@theme_accent`.
+Workout data is stored locally in AsyncStorage under `@acad_workouts`. Theme and display settings are stored under `@theme_mode`, `@theme_accent`, and `@date_format`.
 
 Uninstalling the app clears local data. Export a JSON backup before reinstalling or moving to another device, then import it from the History screen.
 
-Workout dates are stored as `YYYY-MM-DD` using the device's local date, and weights are stored in kilograms.
+Workout dates are stored as `YYYY-MM-DD` using the device's local date, regardless of the selected display format. Weights are stored in kilograms.
 
 ## Available Scripts
 
@@ -149,6 +150,7 @@ acad/
     |-- storage/
     |   `-- storage.js             # AsyncStorage workout accessors
     `-- utils/
+        |-- dateFormat.js          # Display date formatting options
         `-- exportImport.js        # JSON backup helpers
 ```
 

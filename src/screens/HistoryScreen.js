@@ -7,12 +7,7 @@ import { exportWorkouts, pickAndReadBackup } from '../utils/exportImport';
 import { useTheme } from '../context/ThemeContext';
 import WorkoutEditorModal from '../components/WorkoutEditorModal';
 import { getEquipmentLabel } from '../constants/equipment';
-
-function formatDate(dateStr) {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const d = new Date(year, month - 1, day);
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-}
+import { formatDisplayDate } from '../utils/dateFormat';
 
 function calcVolume(exercises) {
   return (exercises || []).reduce(
@@ -68,10 +63,10 @@ function WorkoutRow({ workout, label, onEdit }) {
 }
 
 function DateGroup({ group, onEdit }) {
-  const { theme: C } = useTheme();
+  const { theme: C, dateFormatKey } = useTheme();
   return (
     <View style={s.dateGroup}>
-      <Text style={[s.dateHeader, { color: C.accent }]}>{formatDate(group.date)}</Text>
+      <Text style={[s.dateHeader, { color: C.accent }]}>{formatDisplayDate(group.date, dateFormatKey)}</Text>
       {group.workouts.map((w, i) => (
         <WorkoutRow
           key={w.id}
