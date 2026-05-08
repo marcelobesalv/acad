@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getAllWorkoutsSortedDesc, replaceAllWorkouts } from '../storage/storage';
+import { getAllTemplates, getAllPlans, replaceAllTemplates, replaceAllPlans } from '../storage/planStorage';
 import { exportWorkouts, pickAndReadBackup } from '../utils/exportImport';
 import { useTheme } from '../context/ThemeContext';
 import WorkoutEditorModal from '../components/WorkoutEditorModal';
@@ -53,6 +54,7 @@ function WorkoutRow({ workout, label, onEdit }) {
                     Set {j + 1}: {set.reps} reps x {set.weight} kg
                   </Text>
                 ))}
+                {ex.note ? <Text style={[s.noteText, { color: C.textSecondary }]}>Note: {ex.note}</Text> : null}
               </View>
             );
           })}
@@ -109,27 +111,34 @@ export default function HistoryScreen() {
   }
 
   async function handleExport() {
-    try { await exportWorkouts(workouts); }
-    catch (e) { Alert.alert('Export failed', e.message); }
+    try {
+      const [templates, plans] = await Promise.all([getAllTemplates(), getAllPlans()]);
+      await exportWorkouts(workouts, templates, plans);
+    } catch (e) { Alert.alert('Export failed', e.message); }
   }
 
   async function handleImport() {
     try {
       const parsed = await pickAndReadBackup();
       if (!parsed) return;
+      const { workouts: wk, templates: tmpl, plans: pl } = parsed;
       Alert.alert(
         'Restore backup',
-        `Found ${parsed.length} workout(s). Replace all current data?`,
+        `Found ${wk.length} workout(s), ${tmpl.length} template(s), ${pl.length} plan(s). Replace all current data?`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Replace All', style: 'destructive',
             onPress: async () => {
-              await replaceAllWorkouts(parsed);
+              await Promise.all([
+                replaceAllWorkouts(wk),
+                replaceAllTemplates(tmpl),
+                replaceAllPlans(pl),
+              ]);
               const data = await getAllWorkoutsSortedDesc();
               setWorkouts(data);
               setEditingWorkout(null);
-              Alert.alert('Done', `${parsed.length} workout(s) restored.`);
+              Alert.alert('Done', `${wk.length} workout(s), ${tmpl.length} template(s), ${pl.length} plan(s) restored.`);
             },
           },
         ]
@@ -186,5 +195,6 @@ const s = StyleSheet.create({
   exName:        { fontWeight: '700', marginBottom: 2 },
   equipmentText: { fontSize: 12, marginBottom: 2 },
   setLine:       { fontSize: 14, paddingLeft: 8, paddingVertical: 1 },
+  noteText:      { fontSize: 13, paddingLeft: 8, marginTop: 4, fontStyle: 'italic' },
   empty:         { textAlign: 'center', marginTop: 60, fontSize: 15 },
 });

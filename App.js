@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text, View, ScrollView } from 'react-native';
 import LogScreen from './src/screens/LogScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
+import PlanScreen from './src/screens/PlanScreen';
 import ProgressScreen from './src/screens/ProgressScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -45,6 +46,7 @@ class ErrorBoundary extends React.Component {
 const TAB_ICON_NAMES = {
   Log: 'create-outline',
   History: 'list-outline',
+  Plan: 'calendar-outline',
   Progress: 'trending-up-outline',
   Settings: 'settings-outline',
 };
@@ -93,6 +95,11 @@ function AppNavigator() {
           name="History"
           component={HistoryScreen}
           options={{ title: 'History', tabBarIcon: ({ focused }) => <TabIcon label="History" focused={focused} theme={theme} /> }}
+        />
+        <Tab.Screen
+          name="Plan"
+          component={PlanScreen}
+          options={{ title: 'Plan', tabBarIcon: ({ focused }) => <TabIcon label="Plan" focused={focused} theme={theme} /> }}
         />
         <Tab.Screen
           name="Progress"

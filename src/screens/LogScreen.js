@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getWorkoutsByDate, saveWorkout, generateId, getTodayString } from '../storage/storage';
+import { getNextPlan, startPlan } from '../storage/planStorage';
 import { useTheme } from '../context/ThemeContext';
 import { EQUIPMENT_OPTIONS, getEquipmentLabel } from '../constants/equipment';
 import { formatDisplayDate } from '../utils/dateFormat';
@@ -43,6 +44,7 @@ export default function LogScreen() {
   const [activeExIdx, setActiveExIdx]       = useState(null);
   const [newReps, setNewReps]               = useState('');
   const [newWeight, setNewWeight]           = useState('');
+  const [nextPlan, setNextPlan]             = useState(null);
   const loadedDateRef = useRef(null);
 
   const activeWorkout = todayWorkouts[activeIdx];
@@ -54,7 +56,7 @@ export default function LogScreen() {
       if (loadedDateRef.current === today) return;
       let active = true;
       (async () => {
-        const workouts = await getWorkoutsByDate(today);
+        const [workouts, np] = await Promise.all([getWorkoutsByDate(today), getNextPlan()]);
         if (active) {
           const ws = workouts.length > 0
             ? workouts
@@ -62,6 +64,7 @@ export default function LogScreen() {
           setTodayWorkouts(ws);
           setActiveIdx(0);
           setSavedExercises(ws[0].exercises);
+          setNextPlan(np);
           loadedDateRef.current = today;
         }
       })();
@@ -170,9 +173,40 @@ export default function LogScreen() {
     }
   }
 
+  async function handleStartPlan() {
+    if (!nextPlan) return;
+    try {
+      if (hasChanges && exercises.length > 0) await silentSave();
+      const workout = await startPlan(nextPlan.id);
+      const workouts = await getWorkoutsByDate(today);
+      const ws = workouts.length > 0 ? workouts : [workout];
+      const newIdx = ws.findIndex(w => w.id === workout.id);
+      const idx = newIdx >= 0 ? newIdx : ws.length - 1;
+      setTodayWorkouts(ws);
+      setActiveIdx(idx);
+      setSavedExercises(ws[idx].exercises);
+      setNextPlan(null);
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    }
+  }
+
   return (
     <SafeAreaView style={[s.root, { backgroundColor: C.background }]}>
       <Text style={[s.dateHeader, { color: C.accent }]}>{formatDisplayDate(today, dateFormatKey)}</Text>
+
+      {nextPlan && (
+        <TouchableOpacity
+          style={[s.planBanner, { backgroundColor: C.surface, borderColor: C.accent }]}
+          onPress={handleStartPlan}
+        >
+          <Ionicons name="calendar-outline" size={16} color={C.accent} />
+          <Text style={[s.planBannerText, { color: C.text }]} numberOfLines={1}>
+            Up next: <Text style={{ color: C.accent, fontWeight: '700' }}>{nextPlan.name}</Text>
+          </Text>
+          <Text style={[s.planBannerStart, { color: C.accent }]}>Start →</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Workout selector */}
       <ScrollView
@@ -256,6 +290,17 @@ export default function LogScreen() {
               <Ionicons name="add-outline" size={18} color={C.accent} />
               <Text style={[s.addSetBtnText, { color: C.accent }]}>Set</Text>
             </TouchableOpacity>
+
+            <TextInput
+              style={[s.noteInput, { backgroundColor: C.surfaceAlt, color: C.text }]}
+              placeholder="Add a note..."
+              placeholderTextColor={C.textSecondary}
+              value={ex.note || ''}
+              onChangeText={note =>
+                updateExercises(prev => prev.map((e, i) => i === exIdx ? { ...e, note } : e))
+              }
+              multiline
+            />
           </View>
         ))}
 
@@ -376,6 +421,10 @@ export default function LogScreen() {
 const s = StyleSheet.create({
   root:           { flex: 1 },
   dateHeader:     { fontSize: 20, fontWeight: '700', padding: 16, paddingBottom: 8 },
+  planBanner:     { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 8, padding: 12, borderRadius: 8, borderWidth: 1 },
+  planBannerText: { flex: 1, fontSize: 14 },
+  planBannerStart:{ fontSize: 14, fontWeight: '700' },
+  noteInput:      { marginTop: 10, borderRadius: 6, padding: 10, fontSize: 13, minHeight: 36 },
   selectorScroll: { flexGrow: 0, paddingHorizontal: 16 },
   selectorContent:{ flexDirection: 'row', paddingBottom: 12, gap: 8 },
   pill:           { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },

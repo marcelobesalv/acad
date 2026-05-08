@@ -13,14 +13,23 @@ ACAD Gym is a compact workout log for recording daily training sessions, reviewi
 - Record sets with reps and weight in kg.
 - Duplicate or remove individual sets.
 - Remove exercises from the current session.
+- Add a free-text note per exercise to record observations (e.g. "shoulder felt tight").
 - Save only when the active session has unsaved changes.
 - Switching sessions preserves non-empty edits by saving them quietly first.
+
+### Plan Workouts
+
+- Create reusable workout templates (e.g. "Push Day", "Leg Day") with target exercises and sets.
+- Schedule a template to a specific date, or drop it into an ordered "Up Next" queue with no date.
+- Reorder queued plans with up/down arrows.
+- Tap Start on any plan to pre-fill today's session with its exercises, then log actual results.
+- A banner appears on the Log screen when a plan is up next.
 
 ### Review History
 
 - View workouts grouped by date, newest first.
 - See multiple workouts on the same date as Session 1, Session 2, and so on.
-- Expand workout cards to inspect exercises, equipment, sets, reps, and weights.
+- Expand workout cards to inspect exercises, equipment, sets, reps, weights, and notes.
 - See total workout volume on each session card.
 - Edit any past workout in a full-screen editor.
 
@@ -110,9 +119,9 @@ The build output is available in the terminal and in the Expo/EAS dashboard.
 
 ## Data Storage
 
-Workout data is stored locally in AsyncStorage under `@acad_workouts`. Theme and display settings are stored under `@theme_mode`, `@theme_accent`, and `@date_format`.
+Workout data is stored locally in AsyncStorage under `@acad_workouts`. Templates and plans are stored under `@acad_templates` and `@acad_plans`. Theme and display settings are stored under `@theme_mode`, `@theme_accent`, and `@date_format`.
 
-Uninstalling the app clears local data. Export a JSON backup before reinstalling or moving to another device, then import it from the History screen.
+Uninstalling the app clears local data. Export a JSON backup before reinstalling or moving to another device, then import it from the History screen. Backups include workouts, templates, and plans. Old flat-array backup files (v1) are still importable.
 
 Workout dates are stored as `YYYY-MM-DD` using the device's local date, regardless of the selected display format. Weights are stored in kilograms.
 
@@ -136,6 +145,7 @@ acad/
 |-- docs/                          # Planning and design notes
 `-- src/
     |-- components/
+    |   |-- PlanEditorModal.js     # Full-screen editor for templates and plans
     |   `-- WorkoutEditorModal.js  # Full-screen editor for past workouts
     |-- constants/
     |   |-- equipment.js           # Equipment options and labels
@@ -145,13 +155,15 @@ acad/
     |-- screens/
     |   |-- LogScreen.js           # Today's workout logging
     |   |-- HistoryScreen.js       # History, edit, import, and export
+    |   |-- PlanScreen.js          # Workout planner: templates, queue, scheduled plans
     |   |-- ProgressScreen.js      # Exercise charts
     |   `-- SettingsScreen.js      # Appearance controls
     |-- storage/
+    |   |-- planStorage.js         # AsyncStorage accessors for templates and plans
     |   `-- storage.js             # AsyncStorage workout accessors
     `-- utils/
         |-- dateFormat.js          # Display date formatting options
-        `-- exportImport.js        # JSON backup helpers
+        `-- exportImport.js        # JSON backup helpers (v2 format)
 ```
 
 ## Notes

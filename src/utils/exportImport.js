@@ -3,8 +3,9 @@ import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { Platform, Alert } from 'react-native';
 
-export async function exportWorkouts(workouts) {
-  const json = JSON.stringify(workouts, null, 2);
+export async function exportWorkouts(workouts, templates = [], plans = []) {
+  const payload = { version: 2, workouts, templates, plans };
+  const json = JSON.stringify(payload, null, 2);
   const filename = `gym_backup_${Date.now()}.json`;
 
   if (Platform.OS === 'android') {
@@ -31,6 +32,7 @@ export async function exportWorkouts(workouts) {
   }
 }
 
+// Returns { workouts, templates, plans } — always, regardless of file version.
 export async function pickAndReadBackup() {
   const result = await DocumentPicker.getDocumentAsync({
     type: 'application/json',
@@ -42,6 +44,20 @@ export async function pickAndReadBackup() {
     encoding: FileSystem.EncodingType.UTF8,
   });
   const parsed = JSON.parse(json);
-  if (!Array.isArray(parsed)) throw new Error('Invalid backup: expected an array.');
-  return parsed;
+
+  // v1: flat array of workouts
+  if (Array.isArray(parsed)) {
+    return { workouts: parsed, templates: [], plans: [] };
+  }
+
+  // v2: { version, workouts, templates, plans }
+  if (parsed && parsed.version === 2 && Array.isArray(parsed.workouts)) {
+    return {
+      workouts: parsed.workouts,
+      templates: Array.isArray(parsed.templates) ? parsed.templates : [],
+      plans: Array.isArray(parsed.plans) ? parsed.plans : [],
+    };
+  }
+
+  throw new Error('Invalid backup file format.');
 }
